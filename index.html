@@ -760,31 +760,19 @@ function setChannel(id){
 
 /* ---------- player ---------- */
 function drawNoise(c){var x=c.getContext('2d'),w=c.width,h=c.height,im=x.createImageData(w,h),d=im.data;for(var i=0;i<d.length;i+=4){var v=Math.random()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255}x.putImageData(im,0,0)}
-function mountPlayer(box,o){
-  var a=o.it||o.ch,live=!!o.live,total=(o.dur||0)*60,pos=o.start||0,playing=true,cc=false,muted=false,timer=0,subTimer=0,subI=0,nt=[];
-  box.innerHTML='<div class="pl burst"><div class="pl-art">'+poster(a,true)+'</div><canvas class="pl-noise" width="96" height="54"></canvas>'+(live?'<span class="pill"><i></i>'+t('liveBadge')+'</span>':'')+'<div class="pl-center"><div class="pl-title">'+o.title+'<small>'+(o.sub||'')+' · '+t('demoNote')+'</small></div></div><div class="pl-sub" hidden><span></span></div><div class="pl-ctl">'
-   +'<button class="ibtn" data-p="pp" aria-label="'+t('playPause')+'">'+IC.pause+'</button>'
-   +(live?'<span style="flex:1"></span>':'<span class="tm" data-p="cur">0:00</span><input type="range" min="0" max="1000" value="0" data-p="seek" aria-label="seek"><span class="tm" data-p="tot">0:00</span>')
-   +'<button class="ibtn" data-p="cc" aria-pressed="false" aria-label="'+t('subs')+'">'+IC.cc+'</button><button class="ibtn" data-p="mute" aria-pressed="false" aria-label="'+t('mute')+'">'+IC.vol+'</button>'
-   +'<select class="sel" data-p="q" aria-label="'+t('quality')+'"><option value="auto">'+t('auto')+'</option><option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option></select>'
-   +'<button class="ibtn" data-p="fs" aria-label="'+t('fullscreen')+'">'+IC.fs+'</button></div></div>';
-  var pl=$('.pl',box),cv=$('canvas',box),pp=$('[data-p=pp]',box),seek=$('[data-p=seek]',box),cu=$('[data-p=cur]',box),to=$('[data-p=tot]',box),sub=$('.pl-sub',box);
-  var mmss=function(s){s=Math.floor(s);var h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')};
-  $('[data-p=q]',box).value=S.quality;
-  drawNoise(cv);[120,240,360].forEach(function(ms){nt.push(setTimeout(function(){drawNoise(cv)},ms))});nt.push(setTimeout(function(){pl.classList.remove('burst')},500));
-  function ui(){if(!live&&total){seek.value=Math.round(pos/total*1000);cu.textContent=mmss(pos);to.textContent=mmss(total)}pp.innerHTML=playing?IC.pause:IC.play}
-  timer=setInterval(function(){if(playing&&!live){pos=Math.min(total,pos+1);if(pos>=total){playing=false;if(o.onEnd)o.onEnd()}}ui()},1000);ui();
-  function showSub(){$('span',sub).textContent=SUBS[subI%SUBS.length][L()];subI++}
-  subTimer=setInterval(function(){if(cc&&playing)showSub()},4200);
-  box.onclick=function(e){var b=e.target.closest('[data-p]');if(!b)return;var k=b.dataset.p;
-    if(k==='pp'){playing=!playing;ui()}
-    else if(k==='cc'){cc=!cc;b.setAttribute('aria-pressed',String(cc));sub.hidden=!cc;if(cc)showSub()}
-    else if(k==='mute'){muted=!muted;b.setAttribute('aria-pressed',String(muted));b.innerHTML=muted?IC.mute:IC.vol}
-    else if(k==='fs'){try{var p=pl.requestFullscreen&&pl.requestFullscreen();if(p&&p.catch)p.catch(function(){})}catch(err){}}};
-  if(seek)seek.oninput=function(){pos=total*seek.value/1000;ui()};
-  return {destroy:function(){clearInterval(timer);clearInterval(subTimer);nt.forEach(clearTimeout);box.onclick=null;box.innerHTML=''},get pos(){return pos},get total(){return total}};
+function mountPlayer(box,o,data){
+ var streams=(data&&data.streams)||[],subs=(data&&data.subtitles)||[];
+ if(!streams.length){box.innerHTML='<div class="pl-error">ماكو روابط تشغيل متاحة حالياً لهذا العنوان. جرّب حلقة أو جودة ثانية لاحقاً.</div>';return {destroy:function(){box.innerHTML=''},pos:0,total:0}}
+ var current=0,stream=streams[0],tracks=subs.map(function(x,i){return '<track kind="subtitles" src="'+x.url+'" srclang="'+(x.language==='ar'?'ar':'en')+'" label="'+(x.language==='ar'?'العربية':'English')+'"'+(i===0?' default':'')+'>'}).join('');
+ function playerHTML(){
+  return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+(o.it.poster||'')+'"><source src="'+stream.url+'" type="'+(stream.container==='mp4'?'video/mp4':'video/'+stream.container)+'">'+tracks+'</video><div class="real-player-foot"><span>'+stream.quality+' · '+stream.container.toUpperCase()+'</span><select class="sel" id="cineQuality">'+streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+x.quality+' · '+x.container.toUpperCase()+'</option>'}).join('')+'</select></div></div>';
+ }
+ box.innerHTML=playerHTML();
+ var video=$('#cineVideo',box),destroyed=false;
+ video.addEventListener('error',function(){if(!destroyed){var msg=video.error&&video.error.code===4?'صيغة الفيديو غير مدعومة بهذا المتصفح.':'تعذر تشغيل المصدر؛ قد تكون الشبكة أو رابط البث غير متاح.';var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent=msg}});
+ $('#cineQuality',box).onchange=function(){var p=video.currentTime,was=!video.paused;current=+this.value;stream=streams[current];box.innerHTML=playerHTML();video=$('#cineVideo',box);video.addEventListener('error',function(){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل الجودة المختارة.';box.appendChild(e)});video.addEventListener('loadedmetadata',function(){try{video.currentTime=p;if(was)video.play().catch(function(){})}catch(e){}})};
+ return {destroy:function(){destroyed=true;try{video.pause();video.removeAttribute('src');video.load()}catch(e){}box.innerHTML=''},get pos(){return video.currentTime||0},get total(){return video.duration||0}};
 }
-
 /* ---------- modals ---------- */
 var stack=[],lastFocus=null,playerCtl=null,playerId=null,dState={id:null,season:1};
 function lockUpdate(){document.documentElement.classList.toggle('lock',stack.length>0)}
@@ -803,12 +791,17 @@ function openDetail(id){
 }
 function seasonChips(it){var s='';for(var i=1;i<=it.seasons;i++)s+='<button class="chip" data-act="season" data-n="'+i+'" aria-pressed="'+(dState.season===i)+'">'+t('season')+' '+i+'</button>';return s}
 function epsHTML(it){var n=6+(it.seed%3),s='';for(var i=0;i<n;i++){var e=EPT[(i+dState.season*2+it.seed)%EPT.length];s+='<button class="ep" data-act="play" data-id="'+it.id+'" data-ep="'+(i+1)+'"><b>'+(i+1)+'</b><span>'+e[L()]+'</span><small>'+(42+((i*7+it.seed)%14))+' '+t('min')+'</small></button>'}return s}
-function openPlayer(id,ep,trailer){
-  var it=BY[id],ttl=title(it)+(it.type==='series'&&ep?' · '+t('episode')+' '+ep:'')+(trailer?' · '+t('trailer'):'');
-  var dur=trailer?2.5:(it.type==='series'?48:it.dur);
-  openM($('#m-player'),'<div class="sheet" style="width:min(1100px,100%)"><button class="ibtn x" data-act="close" aria-label="'+t('close')+'">'+IC.x+'</button><div class="pl-head">'+ttl+'</div><div id="pBox" style="padding:0 16px 16px"></div></div>','.x');
-  playerId=trailer?null:id;
-  playerCtl=mountPlayer($('#pBox'),{it:it,title:title(it),sub:(trailer?t('trailer'):(it.type==='series'&&ep?t('episode')+' '+ep:gnames(it))),dur:dur,start:(!trailer&&!ep&&S.prog[id])?S.prog[id]*dur*60:0,onEnd:function(){if(S.autoplay&&it.type==='series'&&ep&&ep<(6+(it.seed%3))){toast(t('episode')+' '+(ep+1))}}});
+function cinemanaRequest(payload){
+ return fetch('https://oxljuseesglhdotolzcc.supabase.co/functions/v1/cinemana-streams',{method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_fjLqsFC8awn7j_nEjkuvTQ_uHvLzen_'},body:JSON.stringify(payload)}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||'SOURCE_ERROR');return d})});
+}
+function openPlayer(id,ep,trailer,season){
+ var it=BY[id],ttl=title(it)+(it.type==='series'&&ep?' · '+t('episode')+' '+ep:'');
+ if(!it.cinemanaNb){toast('هذا المحتوى غير مرتبط بمصدر تشغيل');return}
+ if(trailer){toast('لا يتوفر إعلان لهذا العنوان من مصدر سينمانا');return}
+ openM($('#m-player'),'<div class="sheet" style="width:min(1100px,100%)"><button class="ibtn x" data-act="close" aria-label="'+t('close')+'">'+IC.x+'</button><div class="pl-head">'+ttl+'</div><div id="pBox" style="padding:0 16px 16px"><div class="pl-error">جاري جلب روابط سينمانا والجودات والترجمة…</div></div></div>','.x');
+ playerId=id;
+ var box=$('#pBox'),payload={nb:it.cinemanaNb,type:it.type,season:season||1,episode:ep||1};
+ cinemanaRequest(payload).then(function(data){if(!$('#m-player').hidden&&$('#pBox'))playerCtl=mountPlayer($('#pBox'),{it:it,title:title(it)},data)}).catch(function(err){if(box&&box.isConnected)box.innerHTML='<div class="pl-error">تعذر جلب البث: '+String(err.message||err)+'</div>'});
 }
 function openLegal(k){var d=LEGAL[k][S.lang];openM($('#m-legal'),'<div class="sheet narrow legal"><button class="ibtn x" data-act="close" aria-label="'+t('close')+'">'+IC.x+'</button><h2>'+d[0]+'</h2>'+d[1].map(function(p){return '<p>'+p+'</p>'}).join('')+'</div>','.x')}
 function openContact(){var ar=S.lang==='ar',rows=[['hello@shanashil.example',ar?'استفسارات عامة':'General enquiries'],['support@shanashil.example',ar?'المساعدة والمشاكل التقنية':'Help and technical issues'],['legal@shanashil.example',ar?'حقوق النشر والطلبات القانونية':'Copyright and legal requests']];
