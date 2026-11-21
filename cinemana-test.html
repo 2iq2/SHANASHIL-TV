@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SHANASHIL TV · Cinemana Connection Test</title>
+<style>
+body{margin:0;background:#101014;color:#eee;font:16px system-ui;display:grid;place-items:center;min-height:100vh;padding:20px;box-sizing:border-box}
+main{width:min(680px,100%);background:#1b1b22;border:1px solid #39313b;border-radius:18px;padding:22px;box-sizing:border-box}
+h1{font-size:22px;margin:0 0 8px;color:#e9a8c7}p{color:#bbb;line-height:1.7}
+button{background:#db7ca9;color:#160e13;border:0;border-radius:10px;padding:13px 18px;font-weight:700;font-size:16px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101015;border-radius:12px;padding:14px;min-height:110px;direction:ltr;text-align:left;color:#d8e4dd;font-size:13px}
+.ok{color:#8ee0ad}.bad{color:#ff9b9b}
+</style>
+<main><h1>اختبار اتصال سينمانا</h1><p>هذا الاختبار يفحص هل متصفحك يسمح للموقع بجلب بيانات الحلقات وروابط الفيديو مباشرةً من Cinemana، بدون خادم Supabase.</p>
+<button id="run">ابدأ الاختبار</button><pre id="out">جاهز للاختبار…</pre></main>
+<script>
+const out=document.getElementById('out'),btn=document.getElementById('run');
+const API='https://cinemana.shabakaty.com/api/android/';
+async function get(path){const r=await fetch(API+path,{method:'GET',headers:{Accept:'application/json'}});if(!r.ok)throw new Error('HTTP '+r.status+' '+path);return r.json()}
+btn.onclick=async()=>{btn.disabled=true;out.textContent='جاري الفحص…';
+let lines=[];
+try{
+ const eps=await get('videoSeason/id/3153173');
+ lines.push('1) الحلقات: نجح الاتصال من المتصفح ('+eps.length+' عنصر).');
+ const ep=eps.find(x=>String(x.rootSeries)==='3153173')||eps.find(x=>String(x.nb)!=='3153173')||eps[0];
+ if(!ep)throw new Error('لم تُرجع Cinemana حلقات');
+ lines.push('2) معرّف الحلقة: '+ep.nb);
+ const vids=await get('transcoddedFiles/id/'+encodeURIComponent(ep.nb));
+ lines.push('3) روابط الجودة: نجح الاتصال ('+(Array.isArray(vids)?vids.length:0)+' خيار).');
+ if(Array.isArray(vids)&&vids[0])lines.push('4) أول جودة: '+(vids[0].resolution||vids[0].name||'متاحة')+' | videoUrl: '+(vids[0].videoUrl?'موجود':'غير موجود'));
+ lines.push('\nالنتيجة: المتصفح استطاع قراءة API مباشرة. '+(vids.length?'نقدر نربط الموقع بالاتصال المباشر إذا سمحت CORS.':'الحلقات وصلت لكن API ما رجّع خيارات فيديو لهذا المعرّف.'));
+ out.textContent=lines.join('\n');
+}catch(e){lines.push('فشل الاختبار: '+(e&&e.message||e));lines.push('\nإذا ظهر Failed to fetch أو CORS فهذا يعني أن المتصفح يمنع القراءة المباشرة حتى لو فتح الرابط في تبويب مستقل.');out.textContent=lines.join('\n')}
+finally{btn.disabled=false}
+};
+</script>
