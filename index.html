@@ -3,6 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Reem+Kufi:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
 <style>
 /* Concept: a Basra shanasheel window at blue hour. Night teal, warm teak wood, lamplight amber,
    and four stained-glass accents (amber, ruby, emerald, cobalt). Carved-lattice patterns echo the wooden screens.
@@ -66,6 +67,22 @@ html[lang="ar"] .wm b{letter-spacing:.1em!important}
 .ibtn:hover{border-color:var(--line2);background:rgba(255,255,255,.09)}
 .ibtn.txt{width:auto;padding-inline:14px;border-radius:999px;font-family:var(--f-m);font-size:.78rem;letter-spacing:.08em}
 @media (min-width:821px){.nav{display:flex}}
+.auth-sheet{width:min(520px,100%);padding:34px 26px 26px}
+.auth-sheet h2{font-family:var(--f-d);font-size:1.65rem;margin:8px 0 4px}
+.auth-sub{color:var(--mu);font-size:.9rem;margin:0 0 22px}
+.auth-tabs{display:flex;gap:8px;padding:4px;border:1px solid var(--line);border-radius:999px;margin:16px 0 20px}
+.auth-tabs button{flex:1;padding:9px 12px;border-radius:999px;color:var(--mu)}
+.auth-tabs button.on{background:var(--ac);color:var(--ac-ink);font-weight:600}
+.auth-field{display:grid;gap:6px;margin:12px 0}
+.auth-field label{font-size:.86rem;color:var(--mu)}
+.auth-field input{width:100%;min-height:46px;padding:10px 13px;border-radius:10px;border:1px solid var(--line2);background:var(--s2);outline:none}
+.auth-field input:focus{border-color:var(--ac)}
+.auth-submit{width:100%;margin-top:12px}
+.auth-message{min-height:24px;margin:12px 0 0;color:var(--ac);font-size:.88rem}
+.auth-account{padding-top:24px}
+.auth-email{direction:ltr;text-align:start;overflow-wrap:anywhere;color:var(--mu);font-family:var(--f-m);font-size:.82rem;margin:4px 0 18px}
+.auth-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+@media(max-width:520px){.auth-sheet{padding:30px 18px 20px}.auth-actions>*{flex:1}}
 .tabs{position:fixed;inset-inline:0;bottom:0;z-index:50;display:none;grid-template-columns:repeat(5,1fr);background:rgba(10,11,15,.9);backdrop-filter:blur(18px);border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px))}
 .tabs a{display:grid;justify-items:center;gap:2px;padding:6px 0;color:var(--mu);font-size:.7rem;font-weight:500}
 .tabs a.on{color:var(--ac)}
@@ -376,6 +393,7 @@ html[lang="ar"] .foot h4{font-family:var(--f-b);font-size:.84rem}
       <button class="ibtn" data-act="search" id="btnSearch" data-i18n-aria="search"></button>
       <button class="ibtn txt" data-act="lang-toggle" id="btnLang" aria-label="Language"></button>
       <button class="ibtn" data-act="settings" id="btnSet" data-i18n-aria="settings"></button>
+      <button class="ibtn txt" data-act="account" id="btnAccount" aria-label="الحساب">حسابي</button>
     </div>
   </div>
 </header>
@@ -429,6 +447,7 @@ html[lang="ar"] .foot h4{font-family:var(--f-b);font-size:.84rem}
 <div class="modal" id="m-player" hidden role="dialog" aria-modal="true"></div>
 <div class="modal" id="m-legal" hidden role="dialog" aria-modal="true"></div>
 <div class="modal srch" id="m-search" hidden role="dialog" aria-modal="true"></div>
+<div class="modal" id="m-auth" hidden role="dialog" aria-modal="true"></div>
 <div class="scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true"></aside>
 <div class="toast" id="toast" aria-live="polite"></div>
@@ -437,6 +456,8 @@ html[lang="ar"] .foot h4{font-family:var(--f-b);font-size:.84rem}
 (function(){
 'use strict';
 var $=function(s,r){return (r||document).querySelector(s)};
+var sb=null,authUser=null,authProfile=null,authBusy=false;
+try{if(window.supabase&&window.supabase.createClient){sb=window.supabase.createClient('https://oxljuseesglhdotolzcc.supabase.co','sb_publishable_fjLqsFC8awn7j_nEjkuvTQ_uHvLzen_')}}catch(authInitError){console.error('Supabase init:',authInitError)}
 var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
 var store={get:function(k,d){try{var v=localStorage.getItem('shanashil.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:function(k,v){try{localStorage.setItem('shanashil.'+k,JSON.stringify(v))}catch(e){}}};
 var DEF={lang:'ar',accent:'amber',dark:55,grain:true,flash:false,sound:false,calm:false,autoplay:true,sub:'md',quality:'auto',hideAdult:false,list:[],prog:null};
@@ -481,11 +502,63 @@ fDemo:['العناوين والقنوات والصور في هذه النسخة 
 fBuild:['نسخة تجريبية','Demo build'],fMade:['من وحي شناشيل البصرة','Inspired by the shanasheel of Basra']
 };
 var t=function(k){var v=D[k];return v?v[L()]:k};
+var AT={
+  login:['تسجيل الدخول','Sign in'],register:['إنشاء حساب','Create account'],account:['حسابي','My account'],
+  welcome:['مرحباً بك في شناشيل','Welcome to Shanashil'],authHint:['سجّل الدخول أو أنشئ حساباً لحفظ ملفك الشخصي.','Sign in or create an account to save your profile.'],
+  name:['الاسم الظاهر','Display name'],email:['البريد الإلكتروني','Email address'],password:['كلمة المرور','Password'],
+  signout:['تسجيل الخروج','Sign out'],saveProfile:['حفظ الملف الشخصي','Save profile'],switchLogin:['لديك حساب؟ تسجيل الدخول','Already registered? Sign in'],
+  switchRegister:['ليس لديك حساب؟ أنشئ حساباً','New here? Create an account'],verify:['تم إنشاء الحساب. افحص بريدك الإلكتروني لتأكيده قبل تسجيل الدخول.','Account created. Check your email to confirm it before signing in.'],
+  signedIn:['تم تسجيل الدخول بنجاح.','Signed in successfully.'],profileSaved:['تم حفظ الملف الشخصي.','Profile saved.'],
+  noSdk:['تعذر تحميل خدمة الحسابات. حدّث الصفحة وحاول مرة أخرى.','The account service could not load. Refresh and try again.'],
+  loading:['جارٍ التنفيذ…','Working…'],signoutDone:['تم تسجيل الخروج.','You have signed out.'],
+  badProfile:['تعذر تحميل الملف الشخصي حالياً.','Could not load the profile right now.']
+};
+var at=function(k){return AT[k]?AT[k][L()]:k};
+function escHTML(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function updateAuthButton(){
+  var b=$('#btnAccount');if(!b)return;
+  b.textContent=authUser?(authProfile&&authProfile.display_name?authProfile.display_name:at('account')):at('login');
+  b.title=authUser?at('account'):at('login');
+}
+async function loadAuthProfile(){
+  if(!sb||!authUser){authProfile=null;updateAuthButton();return}
+  var r=await sb.from('profiles').select('display_name,username,avatar_url').eq('id',authUser.id).maybeSingle();
+  if(!r.error)authProfile=r.data||{display_name:'',username:'',avatar_url:''};
+  else{console.warn('Profile lookup:',r.error);authProfile=null}
+  updateAuthButton();
+}
+function authMessage(msg,isError){
+  var el=$('#authMessage');if(el){el.textContent=msg||'';el.style.color=isError?'#ff8177':'var(--ac)'}
+}
+function openAuth(mode){
+  if(!sb){toast(at('noSdk'));return}
+  var m=mode||'login',reg=m==='register';
+  var html='<div class="sheet auth-sheet"><button class="ibtn x" data-act="close" aria-label="'+t('close')+'">'+IC.x+'</button>'+
+    '<div class="eyebrow">SHANASHIL TV · MEMBER</div><h2>'+at('welcome')+'</h2><p class="auth-sub">'+at('authHint')+'</p>'+
+    '<div class="auth-tabs"><button type="button" data-act="auth-mode" data-v="login" class="'+(!reg?'on':'')+'">'+at('login')+'</button><button type="button" data-act="auth-mode" data-v="register" class="'+(reg?'on':'')+'">'+at('register')+'</button></div>'+
+    '<form id="authForm" data-mode="'+m+'">'+
+    (reg?'<div class="auth-field"><label for="authName">'+at('name')+'</label><input id="authName" name="display_name" maxlength="80" autocomplete="name" required></div>':'')+
+    '<div class="auth-field"><label for="authEmail">'+at('email')+'</label><input id="authEmail" name="email" type="email" autocomplete="email" required></div>'+
+    '<div class="auth-field"><label for="authPassword">'+at('password')+'</label><input id="authPassword" name="password" type="password" minlength="8" autocomplete="'+(reg?'new-password':'current-password')+'" required></div>'+
+    '<button class="btn auth-submit" type="submit">'+(reg?at('register'):at('login'))+'</button><p class="auth-message" id="authMessage" aria-live="polite"></p></form></div>';
+  openM($('#m-auth'),html,'.auth-field input');
+}
+async function openAccount(){
+  if(!authUser){openAuth('login');return}
+  await loadAuthProfile();
+  var p=authProfile||{display_name:'',username:''};
+  var html='<div class="sheet auth-sheet auth-account"><button class="ibtn x" data-act="close" aria-label="'+t('close')+'">'+IC.x+'</button>'+
+    '<div class="eyebrow">SHANASHIL TV · ACCOUNT</div><h2>'+at('account')+'</h2><div class="auth-email">'+escHTML(authUser.email)+'</div>'+
+    '<form id="profileForm"><div class="auth-field"><label for="profileName">'+at('name')+'</label><input id="profileName" name="display_name" maxlength="80" value="'+escHTML(p.display_name||'')+'" required></div>'+
+    '<button class="btn auth-submit" type="submit">'+at('saveProfile')+'</button><p class="auth-message" id="authMessage" aria-live="polite"></p></form>'+
+    '<div class="auth-actions"><button class="btn glass" type="button" data-act="signout">'+at('signout')+'</button></div></div>';
+  openM($('#m-auth'),html,'.auth-field input');
+}
 
 var LEGAL={
 about:{ar:['عن SHANASHIL TV',['SHANASHIL TV منصة مشاهدة للأفلام والمسلسلات والقنوات المباشرة، مصممة لتعمل بسلاسة على الهاتف والحاسوب والتلفاز، بالعربية والإنكليزية مع دعم كامل للكتابة من اليمين إلى اليسار.','هويتنا البصرية مستوحاة من شناشيل البصرة: المشربيات الخشبية المزخرفة التي ظهرت في المدينة في القرنين السادس عشر والسابع عشر. بيوتها من طابقين، الأرضي من الطابوق والعلوي من الخشب، وزجاجها الملوّن يرمي ضوءاً برتقالياً وأخضر وأحمر وأزرق على الشارع ليلاً. ومن هنا جاءت ألواننا ونقوشنا ونافذة الواجهة المقوّسة.','المصادر التي استندنا إليها في الهوية: العين الإخبارية، ديلي صباح، ذا ناشيونال.','العناوين والقنوات والصور المعروضة في هذه النسخة خيالية، وُضعت لعرض التصميم والأقسام والإعدادات.']],en:['About SHANASHIL TV',['SHANASHIL TV is a viewing platform for films, series and live channels, designed to run smoothly on phone, desktop and television, in Arabic and English with full right-to-left support.','Our visual identity is inspired by the shanasheel of Basra: the ornate wooden lattice windows that appeared in the city in the 16th and 17th centuries. The houses have two floors, brick below and wood above, and their stained glass throws orange, green, red and blue light onto the street at night. That is where our colours, patterns and the arched window on the front page come from.','Sources behind the identity: Al Ain, Daily Sabah, The National.','The titles, channels and artwork shown in this build are fictional and exist to demonstrate the design, sections and settings.']]},
 terms:{ar:['شروط الاستخدام',['باستخدامك SHANASHIL TV فإنك توافق على هذه الشروط. الخدمة للاستخدام الشخصي وغير التجاري فقط.','بعض المحتوى مخصص لمن هم فوق ١٢ أو ١٦ أو ١٨ سنة كما هو مبيّن على كل عنوان. أنت مسؤول عن التأكد من ملاءمة المحتوى لك ولمن يشاهد معك.','يُمنع نسخ المحتوى أو إعادة بثه أو الالتفاف على أي حماية تقنية. يحق لـ SHANASHIL TV تعديل الخدمة أو هذه الشروط في أي وقت، وسيظهر تاريخ آخر تحديث هنا.','آخر تحديث: 2026.']],en:['Terms of use',['By using SHANASHIL TV you agree to these terms. The service is for personal, non-commercial use only.','Some content is intended for viewers over 12, 16 or 18, as shown on each title. You are responsible for judging whether it suits you and anyone watching with you.','Copying, rebroadcasting or bypassing any technical protection is not allowed. SHANASHIL TV may change the service or these terms at any time, and the date of the last update will appear here.','Last updated: 2026.']]},
-privacy:{ar:['سياسة الخصوصية',['في هذه النسخة لا توجد حسابات ولا تتبّع. تفضيلاتك (اللغة واللون وقائمتك وتقدّم المشاهدة) تُحفظ على جهازك فقط داخل مساحة التخزين المحلية للمتصفح.','لا نبيع بياناتك ولا نشاركها مع أحد. يمكنك مسح كل ما حُفظ في أي وقت من الإعدادات، ثم البيانات.','إذا أضفنا حسابات مستقبلاً فسنوضح هنا ما نجمعه ولماذا قبل أن نبدأ.']],en:['Privacy policy',['This build has no accounts and no tracking. Your preferences (language, colour, list and watch progress) are kept only on your device, in the browser\'s local storage.','We do not sell your data or share it with anyone. You can erase everything saved at any time from Settings, under Data.','If accounts are added in the future, this page will say what we collect and why before we begin.']]},
+privacy:{ar:['سياسة الخصوصية',['تستخدم هذه النسخة Supabase للمصادقة وحفظ الاسم الظاهر المرتبط بحسابك. البريد الإلكتروني وبيانات المصادقة تُدار عبر Supabase.','تُحفظ تفضيلات اللغة واللون والقائمة وتقدّم المشاهدة محلياً على جهازك. لا نستخدمها للإعلانات أو التتبّع.','يمكنك تسجيل الخروج من حسابك، كما يمكنك طلب حذف الحساب والبيانات المرتبطة به من إدارة المنصة.']],en:['Privacy policy',['This build uses Supabase authentication and stores the display name associated with your account. Email and authentication data are handled by Supabase.','Language, colour, list and watch progress preferences remain in your browser local storage. They are not used for advertising or tracking.','You can sign out, and you may request deletion of your account and associated data from the platform administrator.']]},
 copyright:{ar:['حقوق النشر والملكية',['© 2026 SHANASHIL TV. جميع الحقوق محفوظة. اسم SHANASHIL TV وشعاره وتصميم الواجهة والنصوص الأصلية والرسوم المولّدة ملك لـ SHANASHIL TV.','أي عمل أو قناة أو علامة تجارية تخص طرفاً ثالثاً تبقى ملكاً لأصحابها، ولا تدّعي SHANASHIL TV ملكيتها ولا تعرضها إلا بترخيص.','إذا كنت صاحب حق وترى أن عملك يُعرض دون إذن، راسلنا على legal@shanashil.example وأرفق: اسم العمل، ومكان ظهوره، وما يثبت ملكيتك، وبيان بحسن نيتك. سنراجع الطلب ونزيل المحتوى المخالف سريعاً.','نتعامل بحزم مع المخالفين المتكررين.']],en:['Copyright and ownership',['© 2026 SHANASHIL TV. All rights reserved. The SHANASHIL TV name, logo, interface design, original text and generated artwork are the property of SHANASHIL TV.','Any work, channel or trademark that belongs to a third party remains the property of its owner. SHANASHIL TV does not claim ownership of it and shows it only under licence.','If you are a rights holder and believe your work is shown without permission, write to legal@shanashil.example with the title of the work, where it appears, proof that it is yours, and a statement made in good faith. We will review the request and remove infringing content promptly.','Repeat infringers are dealt with firmly.']]},
 cookies:{ar:['التخزين المحلي',['يستخدم الموقع التخزين المحلي للمتصفح (localStorage) لحفظ تفضيلاتك فقط: اللغة واللون وعمق الليل وقائمتك وتقدّم المشاهدة.','لا نستخدم ملفات تعريف ارتباط للإعلانات أو التتبّع. مسح بيانات الموقع من المتصفح أو من الإعدادات يعيد كل شيء إلى الوضع الافتراضي.']],en:['Local storage',['The site uses the browser\'s local storage (localStorage) to save your preferences only: language, colour, depth of night, your list and watch progress.','We use no advertising or tracking cookies. Clearing site data in the browser, or in Settings, returns everything to its defaults.']]},
 help:{ar:['مركز المساعدة',['كيف أغيّر اللغة؟ من زر اللغة أعلى الصفحة أو من الإعدادات.','كيف أضيف عنواناً إلى قائمتي؟ اضغط زر + على الملصق، وستجد كل ما أضفته في قائمتي.','كيف أغيّر الأجواء؟ من الإعدادات يمكنك تغيير لون الزجاج الملوّن وعمق الليل وإيقاف الحبيبات، أو تفعيل وضع الهدوء لإيقاف كل الحركة.','ما وضع الفانوس؟ يُظلم الموقع ويبقى حولك دائرة ضوء تتبع المؤشر أو إصبعك، مثل فانوس في زقاق ليلي.','الصوت الخلفي لا يبدأ إلا بعد أن تفعّله، وتستطيع إيقافه في أي لحظة.']],en:['Help centre',['How do I change the language? Use the language button at the top of the page, or Settings.','How do I add a title to my list? Press the + button on a poster. Everything you add appears under My List.','How do I change the mood? In Settings you can change the stained-glass colour and the depth of night, turn off film grain, or switch on calm mode to stop all motion.','What is lantern mode? The site goes dark and a circle of light follows your pointer or finger, like a lantern in a night alley.','The ambient sound only starts after you switch it on, and you can stop it at any moment.']]}
@@ -850,7 +923,7 @@ function refreshAdd(id){
   $$('.btn[data-act="add"][data-id="'+id+'"]').forEach(function(b){var a=inList(id);b.setAttribute('aria-pressed',String(a));b.innerHTML=a?IC.check+t('inList'):IC.plus+t('addList')});
   if(cur==='mylist')renderList();
 }
-function setLang(v){S.lang=v;save();closeAll(true);applyLang();render(cur);if(!$('#drawer').hidden)$('#drawer').innerHTML=drawerHTML();toast(t('toastLang'))}
+function setLang(v){S.lang=v;save();closeAll(true);applyLang();updateAuthButton();render(cur);if(!$('#drawer').hidden)$('#drawer').innerHTML=drawerHTML();toast(t('toastLang'))}
 
 /* ---------- events ---------- */
 document.addEventListener('click',function(e){
@@ -870,6 +943,9 @@ document.addEventListener('click',function(e){
   else if(a==='season'){dState.season=+el.dataset.n;var it=BY[dState.id];$('#seasons').innerHTML=seasonChips(it);$('#eps').innerHTML=epsHTML(it)}
   else if(a==='chan'){closeAll(true);curChan=id;if(cur!=='live'){location.hash='#live'}else{setChannel(id);fillChList();$$('.epg-p').forEach(function(b){})}}
   else if(a==='chcat'){chanCat=el.dataset.c;$$('#chCats .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.c===chanCat))});fillChList()}
+  else if(a==='account'){openAccount()}
+  else if(a==='auth-mode'){openAuth(el.dataset.v)}
+  else if(a==='signout'){(async function(){var r=await sb.auth.signOut();if(r.error){toast(r.error.message);return}closeM($('#m-auth'));toast(at('signoutDone'))})()}
   else if(a==='search'){openSearch()}
   else if(a==='settings'){openDrawer()}
   else if(a==='lang-toggle'){setLang(S.lang==='ar'?'en':'ar')}
@@ -882,6 +958,37 @@ document.addEventListener('click',function(e){
     var w=el.dataset.v;
     if(w==='prog'){S.prog={}}else if(w==='list'){S.list=[]}else{soundOff();var keep=S.lang;S=Object.assign({},DEF,{lang:keep,prog:{m3:.42,s2:.18,m7:.71,m11:.55},list:[]})}
     save();applyFX();applyLang();render(cur);$('#drawer').innerHTML=drawerHTML();toast(t('toastDone'));
+  }
+});
+document.addEventListener('submit',async function(e){
+  var form=e.target;
+  if(form.id==='authForm'){
+    e.preventDefault();if(authBusy)return;
+    var fd=new FormData(form),mode=form.dataset.mode,email=String(fd.get('email')||'').trim(),password=String(fd.get('password')||''),displayName=String(fd.get('display_name')||'').trim();
+    if(password.length<8){authMessage(S.lang==='ar'?'كلمة المرور يجب أن تكون 8 أحرف على الأقل.':'Password must be at least 8 characters.',true);return}
+    authBusy=true;var submit=$('button[type="submit"]',form);if(submit){submit.disabled=true;submit.textContent=at('loading')}
+    try{
+      var result=mode==='register'
+        ?await sb.auth.signUp({email:email,password:password,options:{data:{display_name:displayName},emailRedirectTo:window.location.origin+window.location.pathname}})
+        :await sb.auth.signInWithPassword({email:email,password:password});
+      if(result.error)throw result.error;
+      if(mode==='register'&&result.data&&!result.data.session){
+        authMessage(at('verify'));form.reset();
+      }else{
+        authUser=result.data.user||null;await loadAuthProfile();closeM($('#m-auth'));toast(at('signedIn'));
+      }
+    }catch(err){authMessage(err.message||String(err),true)}
+    finally{authBusy=false;if(submit&&submit.isConnected){submit.disabled=false;submit.textContent=mode==='register'?at('register'):at('login')}}
+  }else if(form.id==='profileForm'){
+    e.preventDefault();if(!authUser||authBusy)return;
+    authBusy=true;var btn=$('button[type="submit"]',form);if(btn){btn.disabled=true;btn.textContent=at('loading')}
+    try{
+      var name=String(new FormData(form).get('display_name')||'').trim();
+      var r=await sb.from('profiles').upsert({id:authUser.id,display_name:name,updated_at:new Date().toISOString()},{onConflict:'id'});
+      if(r.error)throw r.error;
+      await loadAuthProfile();authMessage(at('profileSaved'));updateAuthButton();
+    }catch(err){authMessage(err.message||String(err),true)}
+    finally{authBusy=false;if(btn&&btn.isConnected){btn.disabled=false;btn.textContent=at('saveProfile')}}
   }
 });
 document.addEventListener('change',function(e){
@@ -910,6 +1017,18 @@ window.addEventListener('hashchange',route);
 window.addEventListener('scroll',function(){$('#hd').classList.toggle('s',window.scrollY>24)},{passive:true});
 
 /* ---------- init ---------- */
-applyFX();applyLang();route();
+applyFX();applyLang();updateAuthButton();route();
+if(sb){
+  sb.auth.onAuthStateChange(function(_event,session){
+    authUser=session&&session.user?session.user:null;
+    updateAuthButton();
+    if(authUser){setTimeout(function(){loadAuthProfile()},0)}else{authProfile=null}
+  });
+  sb.auth.getSession().then(function(r){
+    if(r.error){console.warn('Session restore:',r.error);return}
+    authUser=r.data.session?r.data.session.user:null;
+    return loadAuthProfile();
+  }).catch(function(err){console.warn('Session restore:',err)});
+}
 })();
 </script>
