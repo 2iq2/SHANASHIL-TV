@@ -354,7 +354,7 @@ html[lang="ar"] .foot h4{font-family:var(--f-b);font-size:.84rem}
 .foot-b{display:flex;flex-wrap:wrap;gap:6px 24px;justify-content:space-between;padding-block:16px 34px;border-top:1px solid var(--line);font-family:var(--f-m);font-size:.72rem;color:var(--mu)}
 @media (max-width:520px){.hd-in{gap:10px}.wm{font-size:.86rem;letter-spacing:.1em}html[lang="ar"] .wm{letter-spacing:.1em!important}.brand{gap:8px;min-width:0}.mark{width:26px;height:26px}.acts{gap:6px}.acts .ibtn{width:36px;height:36px}.acts .ibtn.txt{width:auto;padding-inline:10px}}
 
-.real-art{display:block;overflow:hidden;background:#090d12}.real-art img{width:100%;height:100%;display:block;object-fit:cover}.real-art .pt{z-index:2}.real-player{background:#000;border-radius:14px;overflow:hidden}.real-player video{display:block;width:100%;max-height:72vh;aspect-ratio:16/9;background:#000}.real-player-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;color:var(--mu);font-size:.82rem}.real-player-foot .sel{max-width:170px}.pl-error{padding:28px 18px;text-align:center;color:var(--mu);background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:14px;line-height:1.8}
+.real-art{display:block;overflow:hidden;background:#090d12}.real-art img{width:100%;height:100%;display:block;object-fit:cover}.real-art .pt{z-index:2}.real-player{background:#000;border-radius:14px;overflow:hidden}.real-player video{display:block;width:100%;max-height:72vh;aspect-ratio:16/9;background:#000}.real-player-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;color:var(--mu);font-size:.82rem}.real-player-foot{flex-wrap:wrap}.real-player-foot .pl-control{display:flex;align-items:center;gap:8px;min-width:0}.real-player-foot .pl-control span{font-size:.78rem;color:var(--mu);white-space:nowrap}.real-player-foot .sel{max-width:170px;min-width:112px;color:var(--tx);font:inherit}.real-player-foot .sel:disabled{opacity:.55}.pl-error{padding:28px 18px;text-align:center;color:var(--mu);background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:14px;line-height:1.8}
 </style>
 
 <div class="fx fx-flash" aria-hidden="true"></div>
@@ -765,14 +765,23 @@ function drawNoise(c){var x=c.getContext('2d'),w=c.width,h=c.height,im=x.createI
 function mountPlayer(box,o,data){
  var streams=(data&&data.streams)||[],subs=(data&&data.subtitles)||[];
  if(!streams.length){box.innerHTML='<div class="pl-error">ماكو روابط تشغيل متاحة حالياً لهذا العنوان. جرّب حلقة أو جودة ثانية لاحقاً.</div>';return {destroy:function(){box.innerHTML=''},pos:0,total:0}}
- var current=0,stream=streams[0],tracks=subs.map(function(x,i){return '<track kind="subtitles" src="'+x.url+'" srclang="'+(x.language==='ar'?'ar':'en')+'" label="'+(x.language==='ar'?'العربية':'English')+'"'+(i===0?' default':'')+'>'}).join('');
+ var current=0,stream=streams[0],activeSubtitle=-1,destroyed=false;
+ function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+ function langCode(v){var x=String(v||'').toLowerCase();return /(^|[^a-z])ar([^a-z]|$)|arabic|عرب/.test(x)?'ar':(/(^|[^a-z])en([^a-z]|$)|english|انجليزي/.test(x)?'en':'und')}
+ function subLabel(x,i){var v=String(x.language||x.name||'').trim();if(/arabic|عرب|^ar$/i.test(v))return 'العربية';if(/english|^en$/i.test(v))return 'English';return v||('ترجمة '+(i+1))}
  function playerHTML(){
-  return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+(o.it.poster||'')+'"><source src="'+stream.url+'" type="'+(stream.container==='mp4'?'video/mp4':'video/'+stream.container)+'">'+tracks+'</video><div class="real-player-foot"><span>'+stream.quality+' · '+stream.container.toUpperCase()+'</span><select class="sel" id="cineQuality">'+streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+x.quality+' · '+x.container.toUpperCase()+'</option>'}).join('')+'</select></div></div>';
+  var tracks=subs.map(function(x,i){return '<track kind="subtitles" src="'+esc(x.url)+'" srclang="'+langCode(x.language)+'" label="'+esc(subLabel(x,i))+'">'}).join('');
+  var qualityOptions=streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+esc(x.quality)+' · '+esc(String(x.container||'mp4').toUpperCase())+'</option>'}).join('');
+  var subtitleOptions='<option value="-1">إيقاف</option>'+subs.map(function(x,i){return '<option value="'+i+'"'+(i===activeSubtitle?' selected':'')+'>'+esc(subLabel(x,i))+'</option>'}).join('');
+  return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+esc(o.it.poster||'')+'"><source src="'+esc(stream.url)+'" type="video/'+esc(stream.container==='mp4'?'mp4':stream.container||'mp4')+'">'+tracks+'</video><div class="real-player-foot"><label class="pl-control"><span>الجودة</span><select class="sel" id="cineQuality" aria-label="اختيار الجودة">'+qualityOptions+'</select></label><label class="pl-control"><span>الترجمة</span><select class="sel" id="cineSubtitle" aria-label="اختيار الترجمة"'+(!subs.length?' disabled':'')+'>'+subtitleOptions+'</select></label></div></div>';
  }
  box.innerHTML=playerHTML();
- var video=$('#cineVideo',box),destroyed=false;
+ var video=$('#cineVideo',box);
+ function applySubtitle(){if(!video||!video.textTracks)return;for(var i=0;i<video.textTracks.length;i++)video.textTracks[i].mode=(i===activeSubtitle?'showing':'disabled')}
+ video.addEventListener('loadedmetadata',applySubtitle);
  video.addEventListener('error',function(){if(!destroyed){var msg=video.error&&video.error.code===4?'صيغة الفيديو غير مدعومة بهذا المتصفح.':'تعذر تشغيل المصدر؛ قد تكون الشبكة أو رابط البث غير متاح.';var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent=msg}});
- $('#cineQuality',box).onchange=function(){var p=video.currentTime,was=!video.paused;current=+this.value;stream=streams[current];box.innerHTML=playerHTML();video=$('#cineVideo',box);video.addEventListener('error',function(){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل الجودة المختارة.';box.appendChild(e)});video.addEventListener('loadedmetadata',function(){try{video.currentTime=p;if(was)video.play().catch(function(){})}catch(e){}})};
+ $('#cineSubtitle',box).onchange=function(){activeSubtitle=Number(this.value);applySubtitle()};
+ $('#cineQuality',box).onchange=function(){var p=video.currentTime,was=!video.paused;current=+this.value;stream=streams[current];box.innerHTML=playerHTML();video=$('#cineVideo',box);video.addEventListener('loadedmetadata',function(){applySubtitle();try{video.currentTime=p;if(was)video.play().catch(function(){})}catch(e){}});video.addEventListener('error',function(){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل الجودة المختارة.';box.appendChild(e)});};
  return {destroy:function(){destroyed=true;try{video.pause();video.removeAttribute('src');video.load()}catch(e){}box.innerHTML=''},get pos(){return video.currentTime||0},get total(){return video.duration||0}};
 }
 /* ---------- modals ---------- */
