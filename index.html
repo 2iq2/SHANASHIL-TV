@@ -907,11 +907,35 @@ function openSearch(){
   openM($('#m-search'),'<div class="sheet"><div class="srch-box">'+IC.search+'<input id="q" type="search" autocomplete="off" placeholder="'+t('searchPh')+'" aria-label="'+t('search')+'"><button class="ibtn" data-act="close" aria-label="'+t('close')+'">'+IC.x+'</button></div><div class="srch-res" id="sres"></div></div>','#q');
   fillSearch('');
 }
+var searchTimer=0,searchSeq=0;
+function renderSearchResults(q){
+ var res=$('#sres');if(!res)return;
+ var items=ITEMS.filter(visible).filter(function(i){if(!q)return true;var hay=[i.t[0],i.t[1],i.dir[0],i.dir[1]].concat(i.cast.map(function(c){return c[0]+' '+c[1]})).concat(i.genres.map(function(g){return G[g][0]+' '+G[g][1]})).join(' ').toLowerCase();return hay.indexOf(q)>-1});
+ var chs=q?CH.filter(function(c){return (c.t[0]+' '+c.t[1]).toLowerCase().indexOf(q)>-1}):[];
+ res.innerHTML=(chs.length?'<div class="res-ch">'+chs.map(function(c){return '<button class="btn glass sm" data-act="chan" data-id="'+c.id+'"><span class="pill"><i></i>'+t('liveBadge')+'</span>'+c.num+' · '+c.t[L()]+'</button>'}).join('')+'</div>':'')+(items.length?'<div class="grid">'+items.map(function(i){return card(i)}).join('')+'</div>':'<div class="empty">'+t('emptySearch')+'</div>');
+}
+function searchCinemana(q,seq){
+ var types=['movie','series'];
+ return Promise.all(types.map(function(type){
+  var endpoint='AdvancedSearch?level=0&page=0&type='+(type==='movie'?'movies':'series')+'&videoTitle='+encodeURIComponent(q);
+  return cinemanaGet(endpoint).then(function(data){return {type:type,items:Array.isArray(data)?data:[]}});
+ })).then(function(groups){
+  if(seq!==searchSeq||!$('#q')||$('#q').value.trim().toLowerCase()!==q)return;
+  var found=[];
+  groups.forEach(function(group){group.items.forEach(function(raw){if(String(raw.kind)===(group.type==='movie'?'1':'2')&&raw.nb)found.push(catalogItem(raw,group.type,ITEMS.length+found.length))})});
+  var seen={};ITEMS.forEach(function(it){if(it.cinemanaNb)seen[it.type+':'+it.cinemanaNb]=true});
+  found.forEach(function(it){var k=it.type+':'+it.cinemanaNb;if(!seen[k]){ITEMS.push(it);BY[it.id]=it;seen[k]=true}});
+  renderSearchResults(q);
+  if(!found.length){var res=$('#sres');if(res&&!res.querySelector('.grid'))res.innerHTML='<div class="empty">'+(S.lang==='ar'?'ما لكيت نتائج بهذا الاسم في سينمانا.':'No matching titles found on Cinemana.')+'</div>'}
+ }).catch(function(err){console.warn('Cinemana search failed',err);if(seq===searchSeq)renderSearchResults(q)});
+}
 function fillSearch(q){
-  q=q.trim().toLowerCase();var res=$('#sres');if(!res)return;
-  var items=ITEMS.filter(visible).filter(function(i){if(!q)return true;var hay=[i.t[0],i.t[1],i.dir[0],i.dir[1]].concat(i.cast.map(function(c){return c[0]+' '+c[1]})).concat(i.genres.map(function(g){return G[g][0]+' '+G[g][1]})).join(' ').toLowerCase();return hay.indexOf(q)>-1});
-  var chs=q?CH.filter(function(c){return (c.t[0]+' '+c.t[1]).toLowerCase().indexOf(q)>-1}):[];
-  res.innerHTML=(chs.length?'<div class="res-ch">'+chs.map(function(c){return '<button class="btn glass sm" data-act="chan" data-id="'+c.id+'"><span class="pill"><i></i>'+t('liveBadge')+'</span>'+c.num+' · '+c.t[L()]+'</button>'}).join('')+'</div>':'')+(items.length?'<div class="grid">'+items.map(function(i){return card(i)}).join('')+'</div>':'<div class="empty">'+t('emptySearch')+'</div>');
+ q=String(q||'').trim().toLowerCase();var res=$('#sres');if(!res)return;
+ clearTimeout(searchTimer);var seq=++searchSeq;
+ renderSearchResults(q);
+ if(q.length<2)return;
+ res.insertAdjacentHTML('beforeend','<div class="cap" style="text-align:center;padding:12px">'+(S.lang==='ar'?'جاري البحث في سينمانا…':'Searching Cinemana…')+'</div>');
+ searchTimer=setTimeout(function(){searchCinemana(q,seq)},350);
 }
 
 /* ---------- settings ---------- */
