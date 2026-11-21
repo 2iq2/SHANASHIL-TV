@@ -549,7 +549,7 @@ var CATALOG_PAGE_SIZE=30;
 var CATALOG_STATE={movies:{offset:0,more:true,loading:false},series:{offset:0,more:true,loading:false}};
 function catalogItem(m,type,index){
  var raw=!!m.nb,gs=raw?[]:(m.genres||[]).map(function(g){var en=String(g).split('|').pop().trim().toLowerCase();return GENRE_KEYS[en]||'drama'}).filter(function(g,i,a){return a.indexOf(g)===i});
- var nb=raw?String(m.nb):((String(m.slug||'').match(/^cinemana-(\\d+)$/)||[])[1]||'');
+ var nb=raw?String(m.nb):((String(m.slug||'').match(/^cinemana-(\d+)$/)||[])[1]||'');
  var ar=String(raw?(m.ar_title||m.en_title||'Untitled'):(m.name||'Untitled'));
  var en=String(raw?(m.en_title||m.ar_title||ar):ar);
  var year=parseInt(raw?m.year:m.releaseInfo,10)||2026;
