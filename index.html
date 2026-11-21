@@ -545,25 +545,68 @@ var RAW=[
 var ITEMS=RAW.map(function(r){var sd=r[11],pk=function(k){return NAMES[(sd+k*5)%NAMES.length]},sr=r[1]==='series';return {id:r[0],type:r[1],t:[r[2],r[3]],year:r[4],dur:sr?48:r[5],seasons:sr?r[5]:0,rate:r[6],age:r[7],genres:r[8].split(','),motif:r[9],pal:r[10],seed:sd,d:[r[12],r[13]],dir:pk(0),cast:[pk(1),pk(2),pk(3)]}});
 var CATALOG_READY=false;
 var GENRE_KEYS={drama:'drama',thriller:'thriller',comedy:'comedy',history:'history',adventure:'adventure',romance:'romance',crime:'crime',fantasy:'fantasy',mystery:'mystery',family:'family',action:'adventure',animation:'fantasy',documentary:'history',horror:'thriller',war:'history',biography:'drama',sci:'fantasy',western:'adventure',music:'drama'};
+var CATALOG_PAGE_SIZE=30;
+var CATALOG_STATE={movies:{offset:0,more:true,loading:false},series:{offset:0,more:true,loading:false}};
 function catalogItem(m,type,index){
- var gs=(m.genres||[]).map(function(g){var en=String(g).split('|').pop().trim().toLowerCase();return GENRE_KEYS[en]||'drama'}).filter(function(g,i,a){return a.indexOf(g)===i});
- var year=parseInt(m.releaseInfo,10)||2026,nb=String(m.slug||'').match(/^cinemana-(\d+)$/);
- var titleName=String(m.name||'Untitled');
- return {id:'cine_'+type+'_'+String(m.slug||m.id||index).replace(/[^a-zA-Z0-9_-]/g,'_'),cinemanaNb:nb?nb[1]:'',type:type,t:[titleName,titleName],year:year,dur:48,seasons:type==='series'?1:0,rate:Math.max(0,Math.min(10,parseFloat(m.imdbRating)||0)),age:12,genres:gs.length?gs:['drama'],motif:'window',pal:index%PAL.length,seed:index+501,d:[String(m.description||''),String(m.description||'')],dir:['—','—'],cast:[],poster:m.poster||'',source:'cinemana'};
+ var raw=!!m.nb,gs=raw?[]:(m.genres||[]).map(function(g){var en=String(g).split('|').pop().trim().toLowerCase();return GENRE_KEYS[en]||'drama'}).filter(function(g,i,a){return a.indexOf(g)===i});
+ var nb=raw?String(m.nb):((String(m.slug||'').match(/^cinemana-(\\d+)$/)||[])[1]||'');
+ var ar=String(raw?(m.ar_title||m.en_title||'Untitled'):(m.name||'Untitled'));
+ var en=String(raw?(m.en_title||m.ar_title||ar):ar);
+ var year=parseInt(raw?m.year:m.releaseInfo,10)||2026;
+ var posterUrl=raw?(m.imgObjUrl||m.imgThumbObjUrl||''):(m.poster||'');
+ return {id:'cine_'+type+'_'+(nb||String(index)),cinemanaNb:nb,type:type,t:[ar,en],year:year,dur:0,seasons:type==='series'?Math.max(1,parseInt(m.season,10)||1):0,rate:Math.max(0,Math.min(10,parseFloat(raw?m.stars:m.imdbRating)||0)),age:12,genres:gs.length?gs:['drama'],motif:'window',pal:index%PAL.length,seed:index+501,d:[String(m.description||m.ar_content||''),String(m.description||m.en_content||m.ar_content||'')],dir:['—','—'],cast:[],poster:posterUrl,source:'cinemana'};
 }
-function loadCinemanaCatalog(){
+function fetchCinemanaPage(type,offset){
+ var kind=type==='movie'?1:2;
+ var url=CINEMANA_API+'videosByCategory?level=0&offset='+encodeURIComponent(offset)+'&videoKind='+kind+'&orderby=desc';
+ return fetch(url,{method:'GET',headers:{Accept:'application/json'}}).then(function(r){if(!r.ok)throw new Error('CINEMANA_CATALOG_HTTP_'+r.status);return r.json()}).then(function(data){
+  var info=Array.isArray(data&&data.info)?data.info:[];
+  var next=Number(data&&data.offset);
+  if(!Number.isFinite(next)||next<=offset)next=offset+info.length;
+  return {items:info,offset:next,more:info.length>=CATALOG_PAGE_SIZE&&next>offset};
+ });
+}
+function loadStaticCinemanaCatalog(){
  return Promise.all([
   fetch('./data/cinemana-movies.json?v=20261121').then(function(r){if(!r.ok)throw new Error('movies catalog '+r.status);return r.json()}),
   fetch('./data/cinemana-series.json?v=20261121').then(function(r){if(!r.ok)throw new Error('series catalog '+r.status);return r.json()})
  ]).then(function(data){
   var movies=(data[0].metas||[]).map(function(x,i){return catalogItem(x,'movie',i)}),series=(data[1].metas||[]).map(function(x,i){return catalogItem(x,'series',i+movies.length)});
   var all=movies.concat(series).filter(function(x){return x.cinemanaNb});
-  if(!all.length)throw new Error('empty Cinemana catalog');
+  if(!all.length)throw new Error('empty Cinemana fallback');
   ITEMS=all;BY={};ITEMS.forEach(function(x){BY[x.id]=x});
+  CATALOG_STATE.movies={offset:0,more:false,loading:false};CATALOG_STATE.series={offset:0,more:false,loading:false};
+  HERO=ITEMS.slice().sort(function(a,b){return b.rate-a.rate}).slice(0,5).map(function(x){return x.id});
+  CATALOG_READY=true;render(cur);
+  return {fallback:true,movies:movies.length,series:series.length};
+ });
+}
+function loadCinemanaCatalog(){
+ return Promise.all([fetchCinemanaPage('movie',0),fetchCinemanaPage('series',0)]).then(function(pages){
+  var movies=pages[0].items.map(function(x,i){return catalogItem(x,'movie',i)}),series=pages[1].items.map(function(x,i){return catalogItem(x,'series',i+movies.length)});
+  var all=movies.concat(series).filter(function(x){return x.cinemanaNb});
+  if(!all.length)throw new Error('empty live Cinemana catalog');
+  ITEMS=all;BY={};ITEMS.forEach(function(x){BY[x.id]=x});
+  CATALOG_STATE.movies={offset:pages[0].offset,more:pages[0].more,loading:false};
+  CATALOG_STATE.series={offset:pages[1].offset,more:pages[1].more,loading:false};
   HERO=ITEMS.slice().sort(function(a,b){return b.rate-a.rate}).slice(0,5).map(function(x){return x.id});
   CATALOG_READY=true;render(cur);
   return {movies:movies.length,series:series.length};
- }).catch(function(err){console.warn('Cinemana catalog load failed',err);return null});
+ }).catch(function(err){
+  console.warn('Live Cinemana catalog failed; using saved snapshot',err);
+  return loadStaticCinemanaCatalog().catch(function(fallbackErr){console.warn('Cinemana fallback failed',fallbackErr);return null});
+ });
+}
+function loadMoreCinemana(type){
+ var state=CATALOG_STATE[type];
+ if(!state||state.loading||!state.more)return;
+ state.loading=true;renderCatalog(type);
+ fetchCinemanaPage(type==='movies'?'movie':'series',state.offset).then(function(page){
+  var added=page.items.map(function(x,i){return catalogItem(x,type==='movies'?'movie':'series',ITEMS.length+i)});
+  var seen={};ITEMS.forEach(function(x){if(x.cinemanaNb)seen[x.cinemanaNb]=true});
+  added.forEach(function(x){if(x.cinemanaNb&&!seen[x.cinemanaNb]){ITEMS.push(x);BY[x.id]=x;seen[x.cinemanaNb]=true}});
+  state.offset=page.offset;state.more=page.more;state.loading=false;renderCatalog(type);
+ }).catch(function(err){console.warn('Cinemana next page failed',err);state.loading=false;renderCatalog(type);toast(S.lang==='ar'?'تعذر تحميل الدفعة التالية':'Could not load the next batch')});
 }
 var BY={};ITEMS.forEach(function(i){BY[i.id]=i});
 var CH=[
@@ -651,7 +694,7 @@ var EPGC={};
 function epg(ch){if(EPGC[ch.id])return EPGC[ch.id];var r=rng(ch.seed*31+7),pool=POOL[ch.cat],out=[],m=0,i=Math.floor(r()*4);while(m<1440+300){var d=[45,60,90,120][Math.floor(r()*4)],p=pool[(i++)%pool.length];out.push({s:m,e:m+d,t:[p[0],p[1]]});m+=d}return EPGC[ch.id]=out}
 function onair(ch){var e=epg(ch),m=nowMin(),k=0;for(var i=0;i<e.length;i++){if(e[i].s<=m&&m<e[i].e){k=i;break}}return {cur:e[k],next:e[k+1]||e[0],idx:k,list:e}}
 var inList=function(id){return S.list.indexOf(id)>-1};
-var metaLine=function(it){return '<span>'+it.year+'</span><span>'+(it.type==='series'?(it.seasons+' '+t('seasonsN')):(it.dur+' '+t('min')))+'</span><span class="st">★ '+it.rate+'</span>'+(it.source?'':'<span class="tag">+'+it.age+'</span>')};
+var metaLine=function(it){return '<span>'+it.year+'</span>'+(it.type==='series'?'<span>'+it.seasons+' '+t('seasonsN')+'</span>':(it.dur?'<span>'+it.dur+' '+t('min')+'</span>':''))+'<span class="st">★ '+it.rate+'</span>'+(it.source?'':'<span class="tag">+'+it.age+'</span>')};
 var gnames=function(it){return it.genres.map(function(g){return G[g][L()]}).join(' · ')};
 var toastT=0;
 function toast(msg){var el=$('#toast');el.innerHTML='<span>'+msg+'</span>';clearTimeout(toastT);toastT=setTimeout(function(){el.innerHTML=''},2200)}
@@ -717,13 +760,14 @@ function startHero(){clearInterval(hTimer);hTimer=setInterval(function(){if(cur=
 function heroGo(i){hi=(i+HERO.length)%HERO.length;heroText(true);startHero()}
 
 function renderCatalog(type){
-  var el=$('#v-'+type),f=FILT[type];
+  var el=$('#v-'+type),f=FILT[type],state=CATALOG_STATE[type]||{more:false,loading:false};
   var base=ITEMS.filter(function(i){return i.type===(type==='movies'?'movie':'series')&&visible(i)});
   var gs=[];base.forEach(function(i){i.genres.forEach(function(g){if(gs.indexOf(g)<0)gs.push(g)})});
   if(f.g!=='all'&&gs.indexOf(f.g)<0)f.g='all';
   var items=base.filter(function(i){return f.g==='all'||i.genres.indexOf(f.g)>-1});
   items.sort(function(a,b){return f.s==='rate'?b.rate-a.rate:f.s==='az'?title(a).localeCompare(title(b),S.lang):(b.year-a.year||b.rate-a.rate)});
-  el.innerHTML='<div class="wrap"><div class="pg-h"><div class="eyebrow">'+items.length+' '+t('titlesN')+'</div><h1>'+t(type)+'</h1></div><div class="filters"><button class="chip" data-act="genre" data-t="'+type+'" data-g="all" aria-pressed="'+(f.g==='all')+'">'+t('all')+'</button>'+gs.map(function(g){return '<button class="chip" data-act="genre" data-t="'+type+'" data-g="'+g+'" aria-pressed="'+(f.g===g)+'">'+G[g][L()]+'</button>'}).join('')+'<span class="spacer"></span><select class="sel" data-sort="'+type+'" aria-label="'+t('sortBy')+'"><option value="new"'+(f.s==='new'?' selected':'')+'>'+t('sortNew')+'</option><option value="rate"'+(f.s==='rate'?' selected':'')+'>'+t('sortRate')+'</option><option value="az"'+(f.s==='az'?' selected':'')+'>'+t('sortAz')+'</option></select></div><div class="grid">'+(items.length?items.map(function(i){return card(i)}).join(''):'<div class="empty" style="grid-column:1/-1">'+t('emptySearch')+'</div>')+'</div></div>';
+  var more=state.loading?'<button class="btn glass sm" disabled>جاري تحميل الدفعة…</button>':(state.more?'<button class="btn glass sm" data-act="catalog-more" data-t="'+type+'">'+(S.lang==='ar'?'تحميل المزيد':'Load more')+'</button>':'<div class="cap">'+(S.lang==='ar'?'وصلت إلى نهاية القائمة':'End of list')+'</div>');
+  el.innerHTML='<div class="wrap"><div class="pg-h"><div class="eyebrow">'+items.length+' '+t('titlesN')+'</div><h1>'+t(type)+'</h1></div><div class="filters"><button class="chip" data-act="genre" data-t="'+type+'" data-g="all" aria-pressed="'+(f.g==='all')+'">'+t('all')+'</button>'+gs.map(function(g){return '<button class="chip" data-act="genre" data-t="'+type+'" data-g="'+g+'" aria-pressed="'+(f.g===g)+'">'+G[g][L()]+'</button>'}).join('')+'<span class="spacer"></span><select class="sel" data-sort="'+type+'" aria-label="'+t('sortBy')+'"><option value="new"'+(f.s==='new'?' selected':'')+'>'+t('sortNew')+'</option><option value="rate"'+(f.s==='rate'?' selected':'')+'>'+t('sortRate')+'</option><option value="az"'+(f.s==='az'?' selected':'')+'>'+t('sortAz')+'</option></select></div><div class="grid">'+(items.length?items.map(function(i){return card(i)}).join(''):'<div class="empty" style="grid-column:1/-1">'+t('emptySearch')+'</div>')+'</div><div style="display:flex;justify-content:center;padding:8px 0 42px">'+more+'</div></div>';
 }
 function renderList(){
   var items=S.list.map(function(id){return BY[id]}).filter(function(i){return i&&visible(i)});
@@ -933,6 +977,7 @@ document.addEventListener('click',function(e){
   else if(a==='rail'){var r=el.closest('.sec').querySelector('.rail'),rtl=document.dir==='rtl';r.scrollBy({left:(+el.dataset.d)*(rtl?-1:1)*r.clientWidth*.85,behavior:'smooth'})}
   else if(a==='hero'){heroGo(+el.dataset.i)}
   else if(a==='genre'){FILT[el.dataset.t].g=el.dataset.g;renderCatalog(el.dataset.t)}
+  else if(a==='catalog-more'){loadMoreCinemana(el.dataset.t)}
   else if(a==='mood'){FILT.movies.g=el.dataset.g;location.hash='#movies'}
   else if(a==='season'){dState.season=+el.dataset.n;var it=BY[dState.id];$('#seasons').innerHTML=seasonChips(it);$('#eps').innerHTML=epsHTML(it)}
   else if(a==='chan'){closeAll(true);curChan=id;if(cur!=='live'){location.hash='#live'}else{setChannel(id);fillChList();$$('.epg-p').forEach(function(b){})}}
