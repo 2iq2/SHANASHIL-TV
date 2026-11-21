@@ -795,8 +795,54 @@ function openDetail(id){
 function seasonChips(it){var seasons=dState.episodes.map(function(x){return x.season}).filter(function(x,i,a){return a.indexOf(x)>-1}).sort(function(a,b){return a-b});if(!seasons.length)seasons=[1];return seasons.map(function(n){return '<button class="chip" data-act="season" data-n="'+n+'" aria-pressed="'+(dState.season===n)+'">'+t('season')+' '+n+'</button>'}).join('')}
 function epsHTML(it){var eps=dState.episodes.filter(function(x){return x.season===dState.season}).sort(function(a,b){return a.episode-b.episode});if(!eps.length)return '<div class="empty">جاري تحميل الحلقات من سينمانا…</div>';return eps.map(function(e){return '<button class="ep" data-act="play" data-id="'+it.id+'" data-ep="'+e.episode+'" data-season="'+e.season+'"><b>'+e.episode+'</b><span>'+(e.title||('الحلقة '+e.episode))+'</span><small>'+('S'+e.season+' · E'+e.episode)+'</small></button>'}).join('')}
 function loadSeriesEpisodes(it){var target=dState.id;cinemanaRequest({mode:'episodes',nb:it.cinemanaNb,type:'series'}).then(function(data){if(dState.id!==target)return;dState.episodes=data.episodes||[];var seasons=$('#seasons'),eps=$('#eps');if(seasons)seasons.innerHTML=seasonChips(it);if(eps)eps.innerHTML=epsHTML(it)}).catch(function(){var eps=$('#eps');if(eps)eps.innerHTML='<div class="empty">تعذر تحميل قائمة الحلقات من المصدر.</div>'})}
+var CINEMANA_API='https://cinemana.shabakaty.com/api/android/';
+function cinemanaGet(path){
+ return fetch(CINEMANA_API+path,{method:'GET',headers:{Accept:'application/json'}}).then(function(r){
+  if(!r.ok)throw new Error('CINEMANA_HTTP_'+r.status);
+  return r.json();
+ });
+}
+function cinemanaSafeMedia(url){
+ return typeof url==='string'&&/^https:\/\/([a-z0-9-]+\.)*shabakaty\.(com|cc)\//i.test(url);
+}
 function cinemanaRequest(payload){
- return fetch('https://oxljuseesglhdotolzcc.supabase.co/functions/v1/cinemana-streams',{method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_fjLqsFC8awn7j_nEjkuvTQ_uHvLzen_'},body:JSON.stringify(payload)}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||'SOURCE_ERROR');return d})});
+ var nb=String(payload&&payload.nb||''),type=payload&&payload.type==='series'?'series':'movie';
+ if(!/^\d{1,12}$/.test(nb))return Promise.reject(new Error('INVALID_TITLE_ID'));
+ if(payload&&payload.mode==='episodes'){
+  if(type!=='series')return Promise.resolve({episodes:[]});
+  return cinemanaGet('videoSeason/id/'+encodeURIComponent(nb)).then(function(raw){
+   var episodes=(Array.isArray(raw)?raw:[]).filter(function(x){return /^\d{1,12}$/.test(String(x&&x.nb||''))}).map(function(x){
+    return {id:String(x.nb),season:Number(x.season||1),episode:Number(x.episodeNummer||0),title:String(x.en_title||x.ar_title||x.title||'')};
+   }).filter(function(x){return x.episode>0});
+   return {episodes:episodes};
+  });
+ }
+ var videoId=nb,episodeRequest=Promise.resolve();
+ if(type==='series'){
+  var season=Number(payload.season||1),episode=Number(payload.episode||1);
+  if(!Number.isInteger(season)||!Number.isInteger(episode)||season<1||episode<1||season>99||episode>999)return Promise.reject(new Error('INVALID_EPISODE'));
+  episodeRequest=cinemanaGet('videoSeason/id/'+encodeURIComponent(nb)).then(function(raw){
+   var found=(Array.isArray(raw)?raw:[]).filter(function(x){return Number(x&&x.season)===season&&Number(x&&x.episodeNummer)===episode});
+   if(found.length!==1||!/^\d{1,12}$/.test(String(found[0]&&found[0].nb||'')))throw new Error('EPISODE_NOT_FOUND');
+   videoId=String(found[0].nb);
+  });
+ }
+ return episodeRequest.then(function(){
+  return Promise.all([
+   cinemanaGet('transcoddedFiles/id/'+encodeURIComponent(videoId)),
+   cinemanaGet('translationFiles/id/'+encodeURIComponent(videoId)).catch(function(){return {}})
+  ]);
+ }).then(function(results){
+  var videos=results[0],subs=results[1];
+  var streams=(Array.isArray(videos)?videos:[]).filter(function(x){return cinemanaSafeMedia(x&&x.videoUrl)}).map(function(x){
+   return {url:x.videoUrl,quality:String(x.resolution||'Auto'),container:String(x.container||'mp4')};
+  }).sort(function(a,b){return (parseInt(b.quality,10)||0)-(parseInt(a.quality,10)||0)});
+  var translations=Array.isArray(subs&&subs.translations)?subs.translations:[];
+  var subtitles=translations.filter(function(x){return cinemanaSafeMedia(x&&x.file)&&/^vtt$/i.test(String(x.extention||''))}).map(function(x){
+   return {url:x.file,language:String(x.type||x.name||'und')};
+  });
+  return {streams:streams,subtitles:subtitles};
+ });
 }
 function openPlayer(id,ep,trailer,season){
  var it=BY[id],ttl=title(it)+(it.type==='series'&&ep?' · '+t('episode')+' '+ep:'');
