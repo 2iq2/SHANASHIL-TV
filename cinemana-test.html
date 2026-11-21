@@ -1,34 +1,36 @@
 <!doctype html>
 <html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SHANASHIL TV · Cinemana Connection Test</title>
+<title>SHANASHIL TV · Cinemana Catalog Probe</title>
 <style>
 body{margin:0;background:#101014;color:#eee;font:16px system-ui;display:grid;place-items:center;min-height:100vh;padding:20px;box-sizing:border-box}
-main{width:min(680px,100%);background:#1b1b22;border:1px solid #39313b;border-radius:18px;padding:22px;box-sizing:border-box}
+main{width:min(760px,100%);background:#1b1b22;border:1px solid #39313b;border-radius:18px;padding:22px;box-sizing:border-box}
 h1{font-size:22px;margin:0 0 8px;color:#e9a8c7}p{color:#bbb;line-height:1.7}
 button{background:#db7ca9;color:#160e13;border:0;border-radius:10px;padding:13px 18px;font-weight:700;font-size:16px}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101015;border-radius:12px;padding:14px;min-height:110px;direction:ltr;text-align:left;color:#d8e4dd;font-size:13px}
-.ok{color:#8ee0ad}.bad{color:#ff9b9b}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101015;border-radius:12px;padding:14px;min-height:150px;direction:ltr;text-align:left;color:#d8e4dd;font-size:13px}
 </style>
-<main><h1>اختبار اتصال سينمانا</h1><p>هذا الاختبار يفحص هل متصفحك يسمح للموقع بجلب بيانات الحلقات وروابط الفيديو مباشرةً من Cinemana، بدون خادم Supabase.</p>
-<button id="run">ابدأ الاختبار</button><pre id="out">جاهز للاختبار…</pre></main>
+<main><h1>فحص كتالوج سينمانا</h1><p>يفحص هذا الاختبار البحث الفارغ للأفلام والمسلسلات عبر الصفحات 0 و1 و2، ثم يجرب البحث بحرف شائع. لا يغيّر الموقع الرئيسي أو المشغّل.</p>
+<button id="run">ابدأ فحص الكتالوج</button><pre id="out">جاهز للفحص…</pre></main>
 <script>
 const out=document.getElementById('out'),btn=document.getElementById('run');
 const API='https://cinemana.shabakaty.com/api/android/';
 async function get(path){const r=await fetch(API+path,{method:'GET',headers:{Accept:'application/json'}});if(!r.ok)throw new Error('HTTP '+r.status+' '+path);return r.json()}
-btn.onclick=async()=>{btn.disabled=true;out.textContent='جاري الفحص…';
-let lines=[];
+function arrOf(v){if(Array.isArray(v))return v; if(v&&typeof v==='object'){for(const k of ['data','results','items','videos','list'])if(Array.isArray(v[k]))return v[k]}return null}
+function describe(v){const a=arrOf(v);return {kind:Array.isArray(v)?'array':typeof v,keys:v&&typeof v==='object'?Object.keys(v).slice(0,18):[],count:a?a.length:null,sample:a&&a[0]?Object.fromEntries(Object.entries(a[0]).filter(([k,val])=>val==null||['string','number','boolean'].includes(typeof val)).slice(0,14)):null}}
+btn.onclick=async()=>{btn.disabled=true;out.textContent='جاري فحص سينمانا…';const lines=[];
 try{
- const eps=await get('videoSeason/id/3153173');
- lines.push('1) الحلقات: نجح الاتصال من المتصفح ('+eps.length+' عنصر).');
- const ep=eps.find(x=>String(x.rootSeries)==='3153173')||eps.find(x=>String(x.nb)!=='3153173')||eps[0];
- if(!ep)throw new Error('لم تُرجع Cinemana حلقات');
- lines.push('2) معرّف الحلقة: '+ep.nb);
- const vids=await get('transcoddedFiles/id/'+encodeURIComponent(ep.nb));
- lines.push('3) روابط الجودة: نجح الاتصال ('+(Array.isArray(vids)?vids.length:0)+' خيار).');
- if(Array.isArray(vids)&&vids[0])lines.push('4) أول جودة: '+(vids[0].resolution||vids[0].name||'متاحة')+' | videoUrl: '+(vids[0].videoUrl?'موجود':'غير موجود'));
- lines.push('\nالنتيجة: المتصفح استطاع قراءة API مباشرة. '+(vids.length?'نقدر نربط الموقع بالاتصال المباشر إذا سمحت CORS.':'الحلقات وصلت لكن API ما رجّع خيارات فيديو لهذا المعرّف.'));
+ for(const type of ['movies','series']){
+  for(const page of [0,1,2]){
+   const path='AdvancedSearch?level=0&page='+page+'&type='+type+'&videoTitle=';
+   try{const data=await get(path);lines.push(type+' | page '+page+': '+JSON.stringify(describe(data)));}
+   catch(e){lines.push(type+' | page '+page+' ERROR: '+e.message)}
+  }
+  const path='AdvancedSearch?level=0&page=0&type='+type+'&videoTitle=a';
+  try{const data=await get(path);lines.push(type+' | query "a": '+JSON.stringify(describe(data)));}
+  catch(e){lines.push(type+' | query ERROR: '+e.message)}
+ }
+ lines.push('\nانتهى الفحص. انسخ النتيجة وأرسلها هنا حتى نحدد هل توجد صفحات كتالوج كاملة أو أن البحث بالعنوان فقط.');
  out.textContent=lines.join('\n');
-}catch(e){lines.push('فشل الاختبار: '+(e&&e.message||e));lines.push('\nإذا ظهر Failed to fetch أو CORS فهذا يعني أن المتصفح يمنع القراءة المباشرة حتى لو فتح الرابط في تبويب مستقل.');out.textContent=lines.join('\n')}
+}catch(e){out.textContent='فشل الفحص: '+(e&&e.message||e)}
 finally{btn.disabled=false}
 };
 </script>
