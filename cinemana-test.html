@@ -3,34 +3,24 @@
 <title>SHANASHIL TV · Cinemana Catalog Probe</title>
 <style>
 body{margin:0;background:#101014;color:#eee;font:16px system-ui;display:grid;place-items:center;min-height:100vh;padding:20px;box-sizing:border-box}
-main{width:min(760px,100%);background:#1b1b22;border:1px solid #39313b;border-radius:18px;padding:22px;box-sizing:border-box}
+main{width:min(780px,100%);background:#1b1b22;border:1px solid #39313b;border-radius:18px;padding:22px;box-sizing:border-box}
 h1{font-size:22px;margin:0 0 8px;color:#e9a8c7}p{color:#bbb;line-height:1.7}
 button{background:#db7ca9;color:#160e13;border:0;border-radius:10px;padding:13px 18px;font-weight:700;font-size:16px}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101015;border-radius:12px;padding:14px;min-height:150px;direction:ltr;text-align:left;color:#d8e4dd;font-size:13px}
 </style>
-<main><h1>فحص كتالوج سينمانا</h1><p>يفحص هذا الاختبار البحث الفارغ للأفلام والمسلسلات عبر الصفحات 0 و1 و2، ثم يجرب البحث بحرف شائع. لا يغيّر الموقع الرئيسي أو المشغّل.</p>
-<button id="run">ابدأ فحص الكتالوج</button><pre id="out">جاهز للفحص…</pre></main>
+<main><h1>فحص تصفح مكتبة سينمانا</h1><p>الاختبار الأول أثبت وجود صفحات بحث فارغة، لكن إضافة المصدر تشير أيضاً إلى وضع تصفح مستقل بحجم 30 عنصراً. هذا الفحص يختبر وضع التصفح للأفلام والمسلسلات على دفعتين.</p>
+<button id="run">ابدأ الفحص المتقدم</button><pre id="out">جاهز للفحص…</pre></main>
 <script>
-const out=document.getElementById('out'),btn=document.getElementById('run');
-const API='https://cinemana.shabakaty.com/api/android/';
+const out=document.getElementById('out'),btn=document.getElementById('run'),API='https://cinemana.shabakaty.com/api/android/';
 async function get(path){const r=await fetch(API+path,{method:'GET',headers:{Accept:'application/json'}});if(!r.ok)throw new Error('HTTP '+r.status+' '+path);return r.json()}
-function arrOf(v){if(Array.isArray(v))return v; if(v&&typeof v==='object'){for(const k of ['data','results','items','videos','list'])if(Array.isArray(v[k]))return v[k]}return null}
-function describe(v){const a=arrOf(v);return {kind:Array.isArray(v)?'array':typeof v,keys:v&&typeof v==='object'?Object.keys(v).slice(0,18):[],count:a?a.length:null,sample:a&&a[0]?Object.fromEntries(Object.entries(a[0]).filter(([k,val])=>val==null||['string','number','boolean'].includes(typeof val)).slice(0,14)):null}}
-btn.onclick=async()=>{btn.disabled=true;out.textContent='جاري فحص سينمانا…';const lines=[];
-try{
- for(const type of ['movies','series']){
-  for(const page of [0,1,2]){
-   const path='AdvancedSearch?level=0&page='+page+'&type='+type+'&videoTitle=';
-   try{const data=await get(path);lines.push(type+' | page '+page+': '+JSON.stringify(describe(data)));}
-   catch(e){lines.push(type+' | page '+page+' ERROR: '+e.message)}
-  }
-  const path='AdvancedSearch?level=0&page=0&type='+type+'&videoTitle=a';
-  try{const data=await get(path);lines.push(type+' | query "a": '+JSON.stringify(describe(data)));}
-  catch(e){lines.push(type+' | query ERROR: '+e.message)}
- }
- lines.push('\nانتهى الفحص. انسخ النتيجة وأرسلها هنا حتى نحدد هل توجد صفحات كتالوج كاملة أو أن البحث بالعنوان فقط.');
- out.textContent=lines.join('\n');
-}catch(e){out.textContent='فشل الفحص: '+(e&&e.message||e)}
-finally{btn.disabled=false}
+function sample(v){const info=v&&Array.isArray(v.info)?v.info:Array.isArray(v)?v:null;return {kind:Array.isArray(v)?'array':typeof v,keys:v&&typeof v==='object'?Object.keys(v).slice(0,20):[],count:info?info.length:null,offset:v&&v.offset!=null?v.offset:null,sample:info&&info[0]?Object.fromEntries(Object.entries(info[0]).filter(([k,x])=>x==null||['string','number','boolean'].includes(typeof x)).slice(0,18)):info&&info[0]?info[0]:null}}
+btn.onclick=async()=>{btn.disabled=true;out.textContent='جاري فحص وضع التصفح…';let lines=[];
+for(const [kind,name] of [[1,'movies'],[2,'series']])for(const offset of [0,30]){
+ const path='videosByCategory?level=0&offset='+offset+'&videoKind='+kind+'&orderby=desc';
+ try{const data=await get(path);lines.push(name+' offset '+offset+': '+JSON.stringify(sample(data)));}
+ catch(e){lines.push(name+' offset '+offset+' ERROR: '+e.message)}
+}
+lines.push('\nأرسل النتيجة كاملة. إذا نجح هذا المسار، نستخدمه لبناء المكتبة بالصفحات بدل الاعتماد على 81 عنواناً ثابتاً.');
+out.textContent=lines.join('\n');btn.disabled=false;
 };
 </script>
