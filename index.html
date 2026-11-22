@@ -616,10 +616,10 @@ var CH=[
 ['c4',4,'شط العرب الوثائقية','Shatt al-Arab Docs','docs',170,'dhow',3,304],['c5',5,'قناة نظران','Nazran Channel','docs',40,'palms',4,305],['c6',6,'جريمة الميناء','Port Crime','crime',350,'port',2,306],
 ['c7',7,'أخبار الميناء','Port News','news',210,'port',5,307],['c8',8,'ملاعب الخليج','Gulf Sports','sports',150,'palms',3,308],['c9',9,'الكورنيش ميوزك','Corniche Music','music',280,'lantern',5,309],['c10',10,'سندباد كيدز','Sinbad Kids','kids',90,'dhow',4,310]
 ].map(function(r){return {id:r[0],num:r[1],t:[r[2],r[3]],cat:r[4],hue:r[5],motif:r[6],pal:r[7],seed:r[8],short:r[3].split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase()}});
-var BEIN_BASE='http://braveo.vip:8080/live/Braveoiptv58965/4781483773/';
+var BEIN_BASE='';
 (window.BEIN_CHANNELS||[]).forEach(function(r,i){
  var n=String(r[0]||''),logo=(window.BEIN_LOGOS||[])[r[1]]||'',id='bein'+(i+1);
- CH.push({id:id,num:CH.length+1,t:[n,n],cat:'sports',hue:278,motif:'sports',pal:0,seed:9000+i,short:'BS',logo:logo,stream:BEIN_BASE+r[2]+'.ts'});
+ CH.push({id:id,num:CH.length+1,t:[n,n],cat:'sports',hue:278,motif:'sports',pal:0,seed:9000+i,short:'BS',logo:logo});
 });
 var CBY={};CH.forEach(function(c){CBY[c.id]=c});
 var CATS={movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Docs'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],music:['موسيقى','Music'],kids:['أطفال','Kids']};
