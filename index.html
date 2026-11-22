@@ -824,25 +824,39 @@ function mountPlayer(box,o,data){
    if(subtitleTrack){try{subtitleTrack.track.mode='disabled';subtitleTrack.remove()}catch(e){}subtitleTrack=null}
    if(subtitleBlobUrl){URL.revokeObjectURL(subtitleBlobUrl);subtitleBlobUrl=null}
   }
+  function normalizeSubtitle(body,extension){
+   body=String(body||'').replace(/^\\uFEFF/,'').replace(/\\r/g,'').trim();
+   if(!body)throw new Error('ملف الترجمة فارغ');
+   if(/^WEBVTT(?:\\s|$)/i.test(body))return body+'\\n';
+   if(extension==='srt'||/^\\d+\\s*\\n\\d{2}:\\d{2}:\\d{2}[,.]/m.test(body)){
+    body=body.replace(/^\\s*\\d+\\s*\\n(?=\\d{2}:\\d{2}:\\d{2}[,.])/gm,'').replace(/(\\d{2}:\\d{2}:\\d{2}),(\\d{3})/g,'$1.$2');
+    return 'WEBVTT\\n\\n'+body+'\\n';
+   }
+   throw new Error('صيغة الترجمة غير مدعومة');
+  }
+  function readSubtitle(url,item){
+   return fetch(url,{method:'GET',mode:'cors',cache:'no-store',headers:{Accept:'text/vtt, application/x-subrip, text/plain, */*'}}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.text();
+   }).then(function(body){return normalizeSubtitle(body,item.extension)});
+  }
   function loadSubtitle(index){
    var token=++subtitleLoadToken;clearSubtitle();
    if(index<0){var status=$('.pl-subtitle-status',box);if(status)status.remove();return}
-   subtitleMessage('جاري تحميل الترجمة…');
-   var item=subs[index];if(!item||!item.url){subtitleMessage('رابط الترجمة غير متوفر');return}
-   fetch(item.url,{method:'GET',mode:'cors',cache:'no-store',headers:{Accept:'text/vtt,text/plain,*/*'}}).then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);return r.text();
-   }).then(function(body){
+   subtitleMessage('جاري جلب الترجمة الأصلية من سينمانا…');
+   var item=subs[index];if(!item||!item.sourceUrl&&!item.url){subtitleMessage('رابط الترجمة غير متوفر');return}
+   var direct=item.sourceUrl?readSubtitle(item.sourceUrl,item):Promise.reject(new Error('NO_SOURCE_URL'));
+   direct.catch(function(){return item.url?readSubtitle(item.url,item):Promise.reject(new Error('تعذر الوصول إلى ملف سينمانا'))}).then(function(body){
     if(destroyed||token!==subtitleLoadToken)return;
-    body=body.replace(/^\\uFEFF/,'').replace(/\\r/g,'');
-    if(!body||!/^WEBVTT(?:\\s|$)/i.test(body.trim()))throw new Error('الملف المستلم ليس WebVTT');
     subtitleBlobUrl=URL.createObjectURL(new Blob([body],{type:'text/vtt;charset=utf-8'}));
     subtitleTrack=document.createElement('track');subtitleTrack.kind='subtitles';
-    subtitleTrack.srclang=item.language==='ar'?'ar':'en';subtitleTrack.label=item.language==='ar'?'العربية':(item.language||'Subtitles');
+    subtitleTrack.srclang=/^ar$/i.test(item.language)?'ar':(/^en$/i.test(item.language)?'en':'und');
+    subtitleTrack.label=/^ar$/i.test(item.language)?'العربية':(/^en$/i.test(item.language)?'English':(item.name||item.language||'Subtitles'));
     subtitleTrack.src=subtitleBlobUrl;
-    subtitleTrack.addEventListener('load',function(){if(token!==subtitleLoadToken)return;subtitleTrack.track.mode='showing';subtitleMessage('تم تحميل الترجمة');});
+    subtitleTrack.addEventListener('load',function(){if(token!==subtitleLoadToken)return;subtitleTrack.track.mode='showing';subtitleMessage('تم تحميل ترجمة سينمانا');});
     subtitleTrack.addEventListener('error',function(){if(token===subtitleLoadToken)subtitleMessage('وصل ملف الترجمة لكن المتصفح لم يستطع قراءته');});
     video.appendChild(subtitleTrack);try{subtitleTrack.track.mode='showing'}catch(e){}
-   }).catch(function(err){if(token===subtitleLoadToken)subtitleMessage('فشل تحميل الترجمة: '+(err&&err.message||'خطأ غير معروف'))});
+   }).catch(function(err){if(token===subtitleLoadToken)subtitleMessage('تعذر جلب ترجمة سينمانا من هذا الاتصال: '+(err&&err.message||'خطأ غير معروف'))});
   }
   video.addEventListener('error',function(){if(!destroyed){var msg=video.error&&video.error.code===4?'صيغة الفيديو غير مدعومة بهذا المتصفح.':'تعذر تشغيل المصدر؛ قد تكون الشبكة أو رابط البث غير متاح.';var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent=msg}});
   $('#cineSubtitle',box).onchange=function(){activeSubtitle=+this.value;loadSubtitle(activeSubtitle)};
@@ -914,7 +928,7 @@ function cinemanaRequest(payload){
   var translations=Array.isArray(subs&&subs.translations)?subs.translations:[];
   var subtitles=translations.filter(function(x){return cinemanaSafeMedia(x&&x.file)&&/^(vtt|srt)$/i.test(String(x.extention||''))}).map(function(x){
    var proxy='https://oxljuseesglhdotolzcc.supabase.co/functions/v1/cinemana-streams?mode=subtitle&v=7&url='+encodeURIComponent(x.file);
-   return {url:proxy,language:String(x.type||x.name||'und')};
+   return {url:proxy,sourceUrl:x.file,extension:String(x.extention||'vtt').toLowerCase(),language:String(x.type||x.name||'und'),name:String(x.name||x.type||'Subtitle')};
   });
   return {streams:streams,subtitles:subtitles};
  });
