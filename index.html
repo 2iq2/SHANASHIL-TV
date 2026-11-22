@@ -913,7 +913,7 @@ function cinemanaRequest(payload){
   }).sort(function(a,b){return (parseInt(b.quality,10)||0)-(parseInt(a.quality,10)||0)});
   var translations=Array.isArray(subs&&subs.translations)?subs.translations:[];
   var subtitles=translations.filter(function(x){return cinemanaSafeMedia(x&&x.file)&&/^(vtt|srt)$/i.test(String(x.extention||''))}).map(function(x){
-   var proxy='https://oxljuseesglhdotolzcc.supabase.co/functions/v1/cinemana-streams?mode=subtitle&v=5&url='+encodeURIComponent(x.file);
+   var proxy='https://oxljuseesglhdotolzcc.supabase.co/functions/v1/cinemana-streams?mode=subtitle&v=6&url='+encodeURIComponent(x.file);
    return {url:proxy,language:String(x.type||x.name||'und')};
   });
   return {streams:streams,subtitles:subtitles};
