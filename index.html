@@ -809,44 +809,44 @@ function drawNoise(c){var x=c.getContext('2d'),w=c.width,h=c.height,im=x.createI
 function mountPlayer(box,o,data){
  var streams=(data&&data.streams)||[],subs=(data&&data.subtitles)||[];
  if(!streams.length){box.innerHTML='<div class="pl-error">ماكو روابط تشغيل متاحة حالياً لهذا العنوان. جرّب حلقة أو جودة ثانية لاحقاً.</div>';return {destroy:function(){box.innerHTML=''},pos:0,total:0}}
- var current=0,stream=streams[0],activeSubtitle=-1,tracks=subs.map(function(x,i){return '<track kind="subtitles" src="'+x.url+'" srclang="'+(x.language==='ar'?'ar':'en')+'" label="'+(x.language==='ar'?'العربية':'English')+'">'}).join('');
- function playerHTML(){
-  return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+(o.it.poster||'')+'"><source src="'+stream.url+'" type="'+(stream.container==='mp4'?'video/mp4':'video/'+stream.container)+'">'+tracks+'</video><div class="real-player-foot"><span>'+stream.quality+' · '+stream.container.toUpperCase()+'</span><select class="sel" id="cineQuality" aria-label="اختيار الجودة">'+streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+x.quality+' · '+x.container.toUpperCase()+'</option>'}).join('')+'</select><select class="sel" id="cineSubtitle" aria-label="اختيار الترجمة"'+(!subs.length?' disabled':'')+'><option value="-1">الترجمة: إيقاف</option>'+subs.map(function(x,i){var label=x.language==='ar'?'العربية':(x.language==='en'?'English':(x.language||'ترجمة '+(i+1)));return '<option value="'+i+'"'+(i===activeSubtitle?' selected':'')+'>'+label+'</option>'}).join('')+'</select></div></div>';
- }
- box.innerHTML=playerHTML();
- var video=$('#cineVideo',box),destroyed=false;
- function applySubtitle(){
-  if(!video||!video.textTracks)return;
-  for(var i=0;i<video.textTracks.length;i++){
-   try{video.textTracks[i].mode=(i===activeSubtitle?'showing':'disabled')}catch(e){}
+ var current=0,stream=streams[0],activeSubtitle=-1,subtitleTrack=null,subtitleBlobUrl=null,subtitleLoadToken=0;
+  function playerHTML(){
+   return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+(o.it.poster||'')+'"><source src="'+stream.url+'" type="'+(stream.container==='mp4'?'video/mp4':'video/'+stream.container)+'"></video><div class="real-player-foot"><span>'+stream.quality+' · '+stream.container.toUpperCase()+'</span><select class="sel" id="cineQuality" aria-label="اختيار الجودة">'+streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+x.quality+' · '+x.container.toUpperCase()+'</option>'}).join('')+'</select><select class="sel" id="cineSubtitle" aria-label="اختيار الترجمة"'+(!subs.length?' disabled':'')+'><option value="-1">الترجمة: إيقاف</option>'+subs.map(function(x,i){var label=x.language==='ar'?'العربية':(x.language==='en'?'English':(x.language||'ترجمة '+(i+1)));return '<option value="'+i+'">'+label+'</option>'}).join('')+'</select></div></div>';
   }
- }
- function subtitleMessage(message){
-  var e=$('.pl-subtitle-status',box);
-  if(!e){e=document.createElement('div');e.className='pl-subtitle-status';e.style.cssText='padding:7px 12px;color:#f2b7d5;font-size:12px;text-align:center';var foot=$('.real-player-foot',box);if(foot)foot.insertAdjacentElement('afterend',e);else box.appendChild(e)}
-  e.textContent=message;
- }
- var trackEls=video.querySelectorAll('track');
- for(var ti=0;ti<trackEls.length;ti++){
-  (function(track,index){
-   track.addEventListener('load',function(){if(index===activeSubtitle){applySubtitle();subtitleMessage('تم تحميل الترجمة');}});
-   track.addEventListener('error',function(){if(index===activeSubtitle)subtitleMessage('تعذر تحميل ملف الترجمة من المصدر');});
-  })(trackEls[ti],ti);
- }
- video.addEventListener('loadedmetadata',applySubtitle);
- video.addEventListener('error',function(){if(!destroyed){var msg=video.error&&video.error.code===4?'صيغة الفيديو غير مدعومة بهذا المتصفح.':'تعذر تشغيل المصدر؛ قد تكون الشبكة أو رابط البث غير متاح.';var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent=msg}});
- $('#cineSubtitle',box).onchange=function(){
-  activeSubtitle=+this.value;
-  applySubtitle();
-  if(activeSubtitle>=0){
-   var selected=trackEls[activeSubtitle];
-   if(selected&&selected.readyState===2){applySubtitle();subtitleMessage('تم تحميل الترجمة');}
-   else subtitleMessage('جاري تحميل الترجمة…');
-  }else{
-   var status=$('.pl-subtitle-status',box);if(status)status.remove();
+  box.innerHTML=playerHTML();
+  var video=$('#cineVideo',box),destroyed=false;
+  function subtitleMessage(message){
+   var e=$('.pl-subtitle-status',box);
+   if(!e){e=document.createElement('div');e.className='pl-subtitle-status';e.style.cssText='padding:7px 12px;color:#f2b7d5;font-size:12px;text-align:center';var foot=$('.real-player-foot',box);if(foot)foot.insertAdjacentElement('afterend',e);else box.appendChild(e)}
+   e.textContent=message;
   }
- };
- $('#cineQuality',box).onchange=function(){var p=video.currentTime,was=!video.paused;current=+this.value;stream=streams[current];box.innerHTML=playerHTML();video=$('#cineVideo',box);video.addEventListener('loadedmetadata',function(){applySubtitle();try{video.currentTime=p;if(was)video.play().catch(function(){})}catch(e){}});video.addEventListener('error',function(){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل الجودة المختارة.';box.appendChild(e)});};
+  function clearSubtitle(){
+   if(subtitleTrack){try{subtitleTrack.track.mode='disabled';subtitleTrack.remove()}catch(e){}subtitleTrack=null}
+   if(subtitleBlobUrl){URL.revokeObjectURL(subtitleBlobUrl);subtitleBlobUrl=null}
+  }
+  function loadSubtitle(index){
+   var token=++subtitleLoadToken;clearSubtitle();
+   if(index<0){var status=$('.pl-subtitle-status',box);if(status)status.remove();return}
+   subtitleMessage('جاري تحميل الترجمة…');
+   var item=subs[index];if(!item||!item.url){subtitleMessage('رابط الترجمة غير متوفر');return}
+   fetch(item.url,{method:'GET',mode:'cors',cache:'no-store',headers:{Accept:'text/vtt,text/plain,*/*'}}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);return r.text();
+   }).then(function(body){
+    if(destroyed||token!==subtitleLoadToken)return;
+    body=body.replace(/^\\uFEFF/,'').replace(/\\r/g,'');
+    if(!body||!/^WEBVTT(?:\\s|$)/i.test(body.trim()))throw new Error('الملف المستلم ليس WebVTT');
+    subtitleBlobUrl=URL.createObjectURL(new Blob([body],{type:'text/vtt;charset=utf-8'}));
+    subtitleTrack=document.createElement('track');subtitleTrack.kind='subtitles';
+    subtitleTrack.srclang=item.language==='ar'?'ar':'en';subtitleTrack.label=item.language==='ar'?'العربية':(item.language||'Subtitles');
+    subtitleTrack.src=subtitleBlobUrl;
+    subtitleTrack.addEventListener('load',function(){if(token!==subtitleLoadToken)return;subtitleTrack.track.mode='showing';subtitleMessage('تم تحميل الترجمة');});
+    subtitleTrack.addEventListener('error',function(){if(token===subtitleLoadToken)subtitleMessage('وصل ملف الترجمة لكن المتصفح لم يستطع قراءته');});
+    video.appendChild(subtitleTrack);try{subtitleTrack.track.mode='showing'}catch(e){}
+   }).catch(function(err){if(token===subtitleLoadToken)subtitleMessage('فشل تحميل الترجمة: '+(err&&err.message||'خطأ غير معروف'))});
+  }
+  video.addEventListener('error',function(){if(!destroyed){var msg=video.error&&video.error.code===4?'صيغة الفيديو غير مدعومة بهذا المتصفح.':'تعذر تشغيل المصدر؛ قد تكون الشبكة أو رابط البث غير متاح.';var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent=msg}});
+  $('#cineSubtitle',box).onchange=function(){activeSubtitle=+this.value;loadSubtitle(activeSubtitle)};
+  $('#cineQuality',box).onchange=function(){var p=video.currentTime,was=!video.paused;current=+this.value;stream=streams[current];box.innerHTML=playerHTML();video=$('#cineVideo',box);video.addEventListener('loadedmetadata',function(){applySubtitle();try{video.currentTime=p;if(was)video.play().catch(function(){})}catch(e){}});video.addEventListener('error',function(){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل الجودة المختارة.';box.appendChild(e)});};
  return {destroy:function(){destroyed=true;try{video.pause();video.removeAttribute('src');video.load()}catch(e){}box.innerHTML=''},get pos(){return video.currentTime||0},get total(){return video.duration||0}};
 }
 /* ---------- modals ---------- */
