@@ -244,7 +244,7 @@ html[lang="ar"] .np h2{font-weight:700;font-size:1.5rem}
 .chr{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:center;padding:8px 10px;border-radius:10px;text-align:start;transition:background .2s}
 .chr:hover{background:var(--s2)}
 .chr[aria-current="true"]{background:var(--s3)}
-.logo{width:42px;height:42px;display:grid;place-items:center;border-radius:10px;font-family:var(--f-m);font-weight:500;font-size:.8rem;background:hsl(var(--hue) 40% 16%);color:hsl(var(--hue) 70% 76%);border:1px solid hsl(var(--hue) 40% 28%)}
+.logo{width:42px;height:42px;display:grid;place-items:center;border-radius:10px;font-family:var(--f-m);font-weight:500;font-size:.8rem;background:hsl(var(--hue) 40% 16%);color:hsl(var(--hue) 70% 76%);border:1px solid hsl(var(--hue) 40% 28%);overflow:hidden}.logo img{width:100%;height:100%;object-fit:contain;padding:4px;background:rgba(255,255,255,.04)}
 .chr b{display:block;font-weight:600;line-height:1.25;font-size:.95rem}
 .chr small{display:block;color:var(--mu);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .epg{margin-block:16px 20px;border:1px solid var(--line);border-radius:14px;background:var(--s1);overflow:hidden}
@@ -435,6 +435,8 @@ html[lang="ar"] .foot h4{font-family:var(--f-b);font-size:.84rem}
 <aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true"></aside>
 <div class="toast" id="toast" aria-live="polite"></div>
 
+<script src="bein-channels.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -614,6 +616,11 @@ var CH=[
 ['c4',4,'شط العرب الوثائقية','Shatt al-Arab Docs','docs',170,'dhow',3,304],['c5',5,'قناة نظران','Nazran Channel','docs',40,'palms',4,305],['c6',6,'جريمة الميناء','Port Crime','crime',350,'port',2,306],
 ['c7',7,'أخبار الميناء','Port News','news',210,'port',5,307],['c8',8,'ملاعب الخليج','Gulf Sports','sports',150,'palms',3,308],['c9',9,'الكورنيش ميوزك','Corniche Music','music',280,'lantern',5,309],['c10',10,'سندباد كيدز','Sinbad Kids','kids',90,'dhow',4,310]
 ].map(function(r){return {id:r[0],num:r[1],t:[r[2],r[3]],cat:r[4],hue:r[5],motif:r[6],pal:r[7],seed:r[8],short:r[3].split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase()}});
+var BEIN_BASE='http://braveo.vip:8080/live/Braveoiptv58965/4781483773/';
+(window.BEIN_CHANNELS||[]).forEach(function(r,i){
+ var n=String(r[0]||''),logo=(window.BEIN_LOGOS||[])[r[1]]||'',id='bein'+(i+1);
+ CH.push({id:id,num:CH.length+1,t:[n,n],cat:'sports',hue:278,motif:'sports',pal:0,seed:9000+i,short:'BS',logo:logo,stream:BEIN_BASE+r[2]+'.ts'});
+});
 var CBY={};CH.forEach(function(c){CBY[c.id]=c});
 var CATS={movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Docs'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],music:['موسيقى','Music'],kids:['أطفال','Kids']};
 var POOL={
@@ -788,20 +795,25 @@ function epgHTML(){
   for(var h=0;h<24;h++)tk+='<span style="left:'+(h*60*PX)+'px">'+fmt(h*60)+'</span>';
   var rows=CH.map(function(c){
     var ps=epg(c).filter(function(p){return p.s<1440}).map(function(p){var e=Math.min(p.e,1440),on=p.s<=nowMin()&&nowMin()<p.e;return '<button class="epg-p'+(on?' on':'')+'" data-act="chan" data-id="'+c.id+'" style="left:'+(p.s*PX)+'px;width:'+((e-p.s)*PX-4)+'px"><b>'+p.t[L()]+'</b><small>'+fmt(p.s)+' – '+fmt(p.e)+'</small></button>'}).join('');
-    return '<div class="epg-r"><button class="epg-ch" data-act="chan" data-id="'+c.id+'"><span class="logo" style="--hue:'+c.hue+'">'+c.short+'</span><b>'+c.t[L()]+'</b></button><div class="epg-tl" style="width:'+W+'px">'+ps+'</div></div>'}).join('');
+    return '<div class="epg-r"><button class="epg-ch" data-act="chan" data-id="'+c.id+'"><span class="logo" style="--hue:'+c.hue+'">'+channelLogo(c)+'</span><b>'+c.t[L()]+'</b></button><div class="epg-tl" style="width:'+W+'px">'+ps+'</div></div>'}).join('');
   return '<div class="epg" dir="ltr"><div class="epg-s" id="epgS"><div class="epg-in" style="width:'+(150+W)+'px"><div class="epg-h"><div class="epg-corner"></div><div class="epg-times" style="width:'+W+'px">'+tk+'</div></div>'+rows+'<div class="epg-now" style="left:'+(150+nowMin()*PX)+'px"></div></div></div></div>';
+}
+function channelLogo(c){
+ var u=String(c.logo||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+ return u?'<img src="'+u+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">':c.short;
 }
 function fillChList(){
   var l=$('#chList');if(!l)return;
-  l.innerHTML=CH.filter(function(c){return chanCat==='all'||c.cat===chanCat}).map(function(c){var a=onair(c);return '<button class="chr" data-act="chan" data-id="'+c.id+'" aria-current="'+(c.id===curChan)+'"><span class="logo" style="--hue:'+c.hue+'">'+c.short+'</span><span><b>'+c.num+' · '+c.t[L()]+'</b><small>'+a.cur.t[L()]+'</small></span></button>'}).join('');
+  l.innerHTML=CH.filter(function(c){return chanCat==='all'||c.cat===chanCat}).map(function(c){var a=onair(c);return '<button class="chr" data-act="chan" data-id="'+c.id+'" aria-current="'+(c.id===curChan)+'"><span class="logo" style="--hue:'+c.hue+'">'+channelLogo(c)+'</span><span><b>'+c.num+' · '+c.t[L()]+'</b><small>'+a.cur.t[L()]+'</small></span></button>'}).join('');
 }
 function setChannel(id){
   curChan=id;var c=CBY[id],a=onair(c),m=nowMin();
   if(livePlayer){livePlayer.destroy();livePlayer=null}
-  livePlayer=mountPlayer($('#plBox'),{ch:c,live:true,title:c.t[L()],sub:CATS[c.cat][L()]+' · '+a.cur.t[L()]});
+  var liveData=c.stream?{streams:[{url:c.stream,quality:'Live',container:'ts'}]}:null;
+  livePlayer=mountPlayer($('#plBox'),{ch:c,live:true,title:c.t[L()],sub:CATS[c.cat][L()]+' · '+a.cur.t[L()]},liveData);
   var pr=Math.max(0,Math.min(1,(m-a.cur.s)/(a.cur.e-a.cur.s)));
   $('#np').innerHTML='<h2>'+c.num+' · '+c.t[L()]+'</h2><div class="now"><span class="meta"><span class="st">'+t('now')+'</span><span class="mono">'+fmt(a.cur.s)+' – '+fmt(a.cur.e)+'</span></span><b>'+a.cur.t[L()]+'</b><span class="prog"><i style="width:'+Math.round(pr*100)+'%"></i></span></div><div class="meta"><span>'+t('next')+'</span><span class="mono">'+fmt(a.next.s)+'</span><span>'+a.next.t[L()]+'</span></div>';
-  $$('.chr').forEach(function(b){b.setAttribute('aria-current',String(b.dataset.id===id))});
+  $('.chr').forEach(function(b){b.setAttribute('aria-current',String(b.dataset.id===id))});
 }
 
 /* ---------- player ---------- */
@@ -809,12 +821,25 @@ function drawNoise(c){var x=c.getContext('2d'),w=c.width,h=c.height,im=x.createI
 function mountPlayer(box,o,data){
  var streams=(data&&data.streams)||[],subs=(data&&data.subtitles)||[];
  if(!streams.length){box.innerHTML='<div class="pl-error">ماكو روابط تشغيل متاحة حالياً لهذا العنوان. جرّب حلقة أو جودة ثانية لاحقاً.</div>';return {destroy:function(){box.innerHTML=''},pos:0,total:0}}
- var current=0,stream=streams[0],activeSubtitle=-1,subtitleTrack=null,subtitleBlobUrl=null,subtitleLoadToken=0;
+ var current=0,stream=streams[0],activeSubtitle=-1,subtitleTrack=null,subtitleBlobUrl=null,subtitleLoadToken=0,mpegtsPlayer=null;
   function playerHTML(){
-   return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+(o.it.poster||'')+'"><source src="'+stream.url+'" type="'+(stream.container==='mp4'?'video/mp4':'video/'+stream.container)+'"></video><div class="real-player-foot"><span>'+stream.quality+' · '+stream.container.toUpperCase()+'</span><select class="sel" id="cineQuality" aria-label="اختيار الجودة">'+streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+x.quality+' · '+x.container.toUpperCase()+'</option>'}).join('')+'</select><select class="sel" id="cineSubtitle" aria-label="اختيار الترجمة"'+(!subs.length?' disabled':'')+'><option value="-1">الترجمة: إيقاف</option>'+subs.map(function(x,i){var label=x.language==='ar'?'العربية':(x.language==='en'?'English':(x.language||'ترجمة '+(i+1)));return '<option value="'+i+'">'+label+'</option>'}).join('')+'</select></div></div>';
+   return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+((o.it&&o.it.poster)||'')+'">'+(stream.container==='ts'?'':'<source src="'+stream.url+'" type="'+(stream.container==='mp4'?'video/mp4':'video/'+stream.container)+'">')+'</video><div class="real-player-foot"><span>'+stream.quality+' · '+stream.container.toUpperCase()+'</span><select class="sel" id="cineQuality" aria-label="اختيار الجودة">'+streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+x.quality+' · '+x.container.toUpperCase()+'</option>'}).join('')+'</select><select class="sel" id="cineSubtitle" aria-label="اختيار الترجمة"'+(!subs.length?' disabled':'')+'><option value="-1">الترجمة: إيقاف</option>'+subs.map(function(x,i){var label=x.language==='ar'?'العربية':(x.language==='en'?'English':(x.language||'ترجمة '+(i+1)));return '<option value="'+i+'">'+label+'</option>'}).join('')+'</select></div></div>';
   }
   box.innerHTML=playerHTML();
   var video=$('#cineVideo',box),destroyed=false;
+  function attachTransport(){
+   if(stream.container!=='ts')return;
+   if(!window.mpegts||!window.mpegts.isSupported()){
+    var e=document.createElement('div');e.className='pl-error';e.textContent='مشغل MPEG-TS غير متاح في هذا المتصفح أو تعذر تحميل مكتبته.';box.appendChild(e);return;
+   }
+   try{
+    mpegtsPlayer=window.mpegts.createPlayer({type:'mpegts',isLive:true,url:stream.url},{enableWorker:true,enableStashBuffer:false,liveBufferLatencyChasing:true,liveBufferLatencyMaxLatency:1.5,liveBufferLatencyMinRemain:0.5});
+    mpegtsPlayer.attachMediaElement(video);mpegtsPlayer.load();
+    var playResult=mpegtsPlayer.play();if(playResult&&playResult.catch)playResult.catch(function(){});
+    mpegtsPlayer.on(window.mpegts.Events.ERROR,function(){var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent='تعذر الاتصال ببث القناة. قد يكون رابط المصدر غير متاح أو يمنع المتصفح الاتصال به.'});
+   }catch(err){var e=document.createElement('div');e.className='pl-error';e.textContent='تعذر تهيئة مشغل البث المباشر.';box.appendChild(e)}
+  }
+  attachTransport();
   function subtitleMessage(message){
    var e=$('.pl-subtitle-status',box);
    if(!e){e=document.createElement('div');e.className='pl-subtitle-status';e.style.cssText='padding:7px 12px;color:#f2b7d5;font-size:12px;text-align:center';var foot=$('.real-player-foot',box);if(foot)foot.insertAdjacentElement('afterend',e);else box.appendChild(e)}
@@ -861,7 +886,7 @@ function mountPlayer(box,o,data){
   video.addEventListener('error',function(){if(!destroyed){var msg=video.error&&video.error.code===4?'صيغة الفيديو غير مدعومة بهذا المتصفح.':'تعذر تشغيل المصدر؛ قد تكون الشبكة أو رابط البث غير متاح.';var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent=msg}});
   $('#cineSubtitle',box).onchange=function(){activeSubtitle=+this.value;loadSubtitle(activeSubtitle)};
   $('#cineQuality',box).onchange=function(){var p=video.currentTime,was=!video.paused;current=+this.value;stream=streams[current];box.innerHTML=playerHTML();video=$('#cineVideo',box);video.addEventListener('loadedmetadata',function(){applySubtitle();try{video.currentTime=p;if(was)video.play().catch(function(){})}catch(e){}});video.addEventListener('error',function(){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل الجودة المختارة.';box.appendChild(e)});};
- return {destroy:function(){destroyed=true;try{video.pause();video.removeAttribute('src');video.load()}catch(e){}box.innerHTML=''},get pos(){return video.currentTime||0},get total(){return video.duration||0}};
+ return {destroy:function(){destroyed=true;try{video.pause();video.removeAttribute('src');video.load()}catch(e){}if(mpegtsPlayer){try{mpegtsPlayer.pause();mpegtsPlayer.unload();mpegtsPlayer.detachMediaElement();mpegtsPlayer.destroy()}catch(e){}mpegtsPlayer=null}box.innerHTML=''},get pos(){return video.currentTime||0},get total(){return video.duration||0}};
 }
 /* ---------- modals ---------- */
 var stack=[],lastFocus=null,playerCtl=null,playerId=null,dState={id:null,season:1,episodes:[]};
