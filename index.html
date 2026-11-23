@@ -622,7 +622,7 @@ var BEIN_BASE='';
  CH.push({id:id,num:CH.length+1,t:[n,n],cat:'sports',hue:278,motif:'sports',pal:0,seed:9000+i,short:'BS',logo:logo});
 });
 var CBY={};CH.forEach(function(c){CBY[c.id]=c});
-var CATS={movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Docs'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],music:['موسيقى','Music'],kids:['أطفال','Kids']};
+var CATS={movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Docs'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],bein:['باقة beIN','beIN Package'],music:['موسيقى','Music'],kids:['أطفال','Kids']};
 var POOL={
 movies:[['فيلم السهرة','Late Show'],['سينما الشناشيل','Shanashil Cinema'],['أفلام الخليج','Gulf Films'],['ليلة الكلاسيك','Classics Night']],
 drama:[['بيت العائلة','Family House'],['حكايات الحي','Neighbourhood Tales'],['مسلسل الليلة','Tonight\'s Series'],['دراما الأمس','Yesterday\'s Drama']],
@@ -709,7 +709,7 @@ function toast(msg){var el=$('#toast');el.innerHTML='<span>'+msg+'</span>';clear
 function card(it,o){o=o||{};var added=inList(it.id);
   return '<article class="card"><button class="card-main" data-act="open" data-id="'+it.id+'" aria-label="'+title(it)+'"><span class="poster">'+poster(it)+'<span class="age">+'+it.age+'</span><span class="hov">'+IC.play+'</span>'+(o.p!=null?'<span class="bar"><i style="width:'+Math.round(o.p*100)+'%"></i></span>':'')+'</span><span class="cap">'+it.year+' · ★ '+it.rate+'</span></button>'
   +'<button class="add" data-act="add" data-id="'+it.id+'" aria-pressed="'+added+'" aria-label="'+(added?t('inList'):t('addList'))+'">'+(added?IC.check:IC.plus)+'</button></article>'}
-function chCard(c){var a=onair(c),pr=Math.max(0,Math.min(1,(nowMin()-a.cur.s)/(a.cur.e-a.cur.s)));return '<article class="card wide"><button class="card-main" data-act="chan" data-id="'+c.id+'" aria-label="'+c.t[L()]+'"><span class="wthumb">'+poster(c,true)+'<span class="pill"><i></i>'+t('liveBadge')+'</span></span><span class="wcap"><b>'+c.num+' · '+c.t[L()]+'</b><small>'+a.cur.t[L()]+'</small><span class="wprog"><i style="width:'+Math.round(pr*100)+'%"></i></span></span></button></article>'}
+function chCard(c){var a=onair(c),pr=Math.max(0,Math.min(1,(nowMin()-a.cur.s)/(a.cur.e-a.cur.s)));return '<article class="card wide"><button class="card-main" data-act="chan" data-id="'+c.id+'" aria-label="'+c.t[L()]+'"><span class="wthumb">'+poster(c,true)+'<span class="pill"><i></i>'+t('liveBadge')+'</span></span><span class="wcap"><b>'+c.num+' · '+c.t[L()]+'</b><small>'+(c.packLabel?c.packLabel+' · ':'')+a.cur.t[L()]+'</small><span class="wprog"><i style="width:'+Math.round(pr*100)+'%"></i></span></span></button></article>'}
 function rowHTML(h,inner,extra){return '<section class="sec"><div class="wrap"><div class="row-h"><h2 class="h2">'+h+'</h2><div class="row-nav"><button class="ibtn" data-act="rail" data-d="-1" aria-label="prev">'+IC.chev+'</button><button class="ibtn" data-act="rail" data-d="1" aria-label="next">'+IC.chev+'</button></div></div><div class="rail '+(extra||'')+'">'+inner+'</div></div></section>'}
 
 /* ---------- views ---------- */
@@ -782,11 +782,11 @@ function renderList(){
 }
 
 /* ---------- live tv ---------- */
-var PX=4;
+var PX=4,beinImportStatus='استورد ملف M3U لتفعيل روابط البث محلياً.';
 function renderLive(){
   var el=$('#v-live');
   var cats=['all'].concat(Object.keys(CATS).filter(function(c){return CH.some(function(x){return x.cat===c})}));
-  el.innerHTML='<div class="wrap"><div class="pg-h"><div class="eyebrow">'+CH.length+' '+t('channels')+'</div><h1>'+t('live')+'</h1></div><div class="live"><div><div id="plBox"></div><div class="np" id="np"></div></div><aside class="chs"><div class="chips" id="chCats">'+cats.map(function(c){return '<button class="chip" data-act="chcat" data-c="'+c+'" aria-pressed="'+(chanCat===c)+'">'+(c==='all'?t('all'):CATS[c][L()])+'</button>'}).join('')+'</div><div class="chlist" id="chList"></div></aside></div><div class="row-h" style="padding-top:20px"><h2 class="h2">'+t('guide')+'</h2></div>'+epgHTML()+'</div>';
+  el.innerHTML='<div class="wrap"><div class="pg-h"><div class="eyebrow">'+CH.length+' '+t('channels')+'</div><h1>'+t('live')+'</h1></div><div class="live"><div><div id="plBox"></div><div class="np" id="np"></div></div><aside class="chs"><div class="bein-import" style="padding:12px;margin:0 0 12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><b>باقة beIN SPORTS</b><p style="font-size:12px;opacity:.75;margin:6px 0">اختر ملف M3U من جهازك. تُقرأ الروابط داخل هذه الجلسة فقط ولا تُرفع إلى GitHub أو Supabase.</p><input id="beinPlaylistInput" type="file" accept=".m3u,.m3u8,.txt" style="width:100%;font-size:12px"><small id="beinImportStatus" style="display:block;margin-top:6px">'+beinImportStatus+'</small></div><div class="chips" id="chCats">'+cats.map(function(c){return '<button class="chip" data-act="chcat" data-c="'+c+'" aria-pressed="'+(chanCat===c)+'">'+(c==='all'?t('all'):CATS[c][L()])+'</button>'}).join('')+'</div><div class="chlist" id="chList"></div></aside></div><div class="row-h" style="padding-top:20px"><h2 class="h2">'+t('guide')+'</h2></div>'+epgHTML()+'</div>';
   fillChList();setChannel(curChan);
   var s=$('#epgS');if(s)s.scrollLeft=Math.max(0,nowMin()*PX-40);
 }
@@ -810,7 +810,15 @@ function setChannel(id){
   curChan=id;var c=CBY[id],a=onair(c),m=nowMin();
   if(livePlayer){livePlayer.destroy();livePlayer=null}
   var liveData=c.stream?{streams:[{url:c.stream,quality:'Live',container:'ts'}]}:null;
-  livePlayer=mountPlayer($('#plBox'),{ch:c,live:true,title:c.t[L()],sub:CATS[c.cat][L()]+' · '+a.cur.t[L()]},liveData);
+  if(c.stream){
+    var streamUrl=String(c.stream),parsedUrl=new URL(streamUrl);
+    var intentUrl='intent://'+parsedUrl.host+parsedUrl.pathname+parsedUrl.search+'#Intent;scheme='+parsedUrl.protocol.slice(0,-1)+';package=org.videolan.vlc;type=video/*;end';
+    var safeAttr=function(v){return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')};
+    $('#plBox').innerHTML='<div class="pl-error" style="padding:26px;text-align:center"><b style="display:block;font-size:18px;margin-bottom:10px">تشغيل خارجي · External Player</b><p style="margin:0 0 18px">هذه القناة تُفتح بمشغّل خارجي متوافق، وليس بمشغّل المتصفح.</p><a href="'+safeAttr(intentUrl)+'" style="display:inline-block;padding:12px 18px;border-radius:10px;background:var(--ac);color:#111;font-weight:700;text-decoration:none;margin:4px">فتح باستخدام VLC</a><a href="'+safeAttr(streamUrl)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 18px;border-radius:10px;border:1px solid var(--line);color:inherit;text-decoration:none;margin:4px">فتح الرابط / اختيار تطبيق</a><small style="display:block;opacity:.65;margin-top:12px">إذا كانت القناة محمية بـ DRM فلن يعمل المشغّل الخارجي إلا بدعم رسمي من المزوّد.</small></div>';
+    livePlayer={destroy:function(){var b=$('#plBox');if(b)b.innerHTML=''}};
+  }else{
+    livePlayer=mountPlayer($('#plBox'),{ch:c,live:true,title:c.t[L()],sub:CATS[c.cat][L()]+' · '+a.cur.t[L()]},liveData);
+  }
   var pr=Math.max(0,Math.min(1,(m-a.cur.s)/(a.cur.e-a.cur.s)));
   $('#np').innerHTML='<h2>'+c.num+' · '+c.t[L()]+'</h2><div class="now"><span class="meta"><span class="st">'+t('now')+'</span><span class="mono">'+fmt(a.cur.s)+' – '+fmt(a.cur.e)+'</span></span><b>'+a.cur.t[L()]+'</b><span class="prog"><i style="width:'+Math.round(pr*100)+'%"></i></span></div><div class="meta"><span>'+t('next')+'</span><span class="mono">'+fmt(a.next.s)+'</span><span>'+a.next.t[L()]+'</span></div>';
   $('.chr').forEach(function(b){b.setAttribute('aria-current',String(b.dataset.id===id))});
@@ -1122,6 +1130,45 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
   var el=e.target;
+  if(el&&el.id==='beinPlaylistInput'){
+    var file=el.files&&el.files[0];if(!file)return;
+    beinImportStatus='جارٍ قراءة القائمة محلياً…';
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        var lines=String(reader.result||'').replace(/^\uFEFF/,'').split(/\r?\n/),rows=[],meta='';
+        for(var z=0;z<lines.length;z++){
+          var line=lines[z].trim();if(!line)continue;
+          if(line.indexOf('#EXTINF')===0){meta=line;continue}
+          if(line.charAt(0)==='#')continue;
+          if(!meta)continue;
+          var head=meta.split(',')[0],name=(meta.indexOf(',')>-1?meta.slice(meta.indexOf(',')+1):'').trim();
+          var gm=head.match(/group-title="([^"]*)"/i),lm=head.match(/tvg-logo="([^"]*)"/i);
+          var group=gm?gm[1]:'',kind='';
+          if(group==='beIN Sports')kind='main';
+          else if(group==='beIN Sports Events (TOD)')kind='events';
+          else if(group==='beIN Sports FR')kind='fr';
+          else if(group==='4K UHD/HDR'&&/\bbein\b/i.test(name))kind='4k';
+          if(kind&&name)rows.push({name:name,logo:lm?lm[1]:'',url:line,kind:kind});
+          meta='';
+        }
+        var rank={main:0,events:1,fr:2,'4k':3},packNames={main:'القنوات الرئيسية',events:'مباريات وفعاليات TOD',fr:'beIN France','4k':'beIN 4K'};
+        rows.sort(function(a,b){return rank[a.kind]-rank[b.kind]||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})});
+        if(!rows.length)throw new Error('لم أجد قنوات beIN في المجموعات المعروفة داخل الملف.');
+        CH=CH.filter(function(c){return !/^bein/i.test(c.id)});
+        rows.forEach(function(r,i){
+          var id='bein-local-'+(i+1);
+          CH.push({id:id,num:CH.length+1,t:[r.name,r.name],cat:'bein',hue:278,motif:'sports',pal:0,seed:19000+i,short:'BS',logo:r.logo,stream:r.url,pack:r.kind,packLabel:packNames[r.kind]});
+        });
+        CBY={};CH.forEach(function(c){CBY[c.id]=c});
+        curChan=CH.find(function(c){return c.cat==='bein'}).id;chanCat='bein';
+        beinImportStatus='تم استيراد '+rows.length+' قناة beIN. الروابط محفوظة في ذاكرة الصفحة فقط.';
+        renderLive();toast('تم تحميل باقة beIN محلياً');
+      }catch(err){beinImportStatus='تعذر الاستيراد: '+(err&&err.message?err.message:'ملف غير صالح');var status=document.getElementById('beinImportStatus');if(status)status.textContent=beinImportStatus}
+    };
+    reader.onerror=function(){beinImportStatus='تعذرت قراءة الملف.';var status=document.getElementById('beinImportStatus');if(status)status.textContent=beinImportStatus};
+    reader.readAsText(file);return;
+  }
   if(el.dataset&&el.dataset.sort){FILT[el.dataset.sort].s=el.value;renderCatalog(el.dataset.sort);return}
   if(el.dataset&&el.dataset.p==='q'){S.quality=el.value;save();return}
   if(!el.dataset||!el.dataset.set)return;
