@@ -610,11 +610,7 @@ function loadMoreCinemana(type){
  }).catch(function(err){console.warn('Cinemana next page failed',err);state.loading=false;renderCatalog(type);toast(S.lang==='ar'?'تعذر تحميل الدفعة التالية':'Could not load the next batch')});
 }
 var BY={};ITEMS.forEach(function(i){BY[i.id]=i});
-var CH=[
-['c1',1,'شناشيل ون','Shanashil One','movies',36,'window',0,301],['c2',2,'سينما العشار','Ashar Cinema','movies',200,'houses',2,302],['c3',3,'دراما الشناشيل','Shanashil Drama','drama',12,'lantern',1,303],
-['c4',4,'شط العرب الوثائقية','Shatt al-Arab Docs','docs',170,'dhow',3,304],['c5',5,'قناة نظران','Nazran Channel','docs',40,'palms',4,305],['c6',6,'جريمة الميناء','Port Crime','crime',350,'port',2,306],
-['c7',7,'أخبار الميناء','Port News','news',210,'port',5,307],['c8',8,'ملاعب الخليج','Gulf Sports','sports',150,'palms',3,308],['c9',9,'الكورنيش ميوزك','Corniche Music','music',280,'lantern',5,309],['c10',10,'سندباد كيدز','Sinbad Kids','kids',90,'dhow',4,310]
-].map(function(r){return {id:r[0],num:r[1],t:[r[2],r[3]],cat:r[4],hue:r[5],motif:r[6],pal:r[7],seed:r[8],short:r[3].split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase()}});
+var CH=[];
 var CBY={};CH.forEach(function(c){CBY[c.id]=c});
 var CATS={movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Docs'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],bein:['باقة beIN','beIN Package'],music:['موسيقى','Music'],kids:['أطفال','Kids']};
 var POOL={
@@ -708,7 +704,7 @@ function rowHTML(h,inner,extra){return '<section class="sec"><div class="wrap"><
 
 /* ---------- views ---------- */
 var VIEWS=['home','movies','series','live','mylist'];
-var cur='home',hi=0,hTimer=0,curChan='c1',chanCat='all',livePlayer=null;
+var cur='home',hi=0,hTimer=0,curChan=null,chanCat='all',livePlayer=null;
 var FILT={movies:{g:'all',s:'new'},series:{g:'all',s:'new'}};
 var HERO=['s6','m1','m9','m2','m5'];
 
@@ -781,7 +777,15 @@ function renderLive(){
   var el=$('#v-live');
   var cats=['all'].concat(Object.keys(CATS).filter(function(c){return CH.some(function(x){return x.cat===c})}));
   el.innerHTML='<div class="wrap"><div class="pg-h"><div class="eyebrow">'+CH.length+' '+t('channels')+'</div><h1>'+t('live')+'</h1></div><div class="live"><div><div id="plBox"></div><div class="np" id="np"></div></div><aside class="chs"><div class="bein-import" style="padding:12px;margin:0 0 12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><b>باقة beIN SPORTS</b><p style="font-size:12px;opacity:.75;margin:6px 0">اختر ملف M3U من جهازك. تُقرأ الروابط داخل هذه الجلسة فقط ولا تُرفع إلى GitHub أو Supabase.</p><input id="beinPlaylistInput" type="file" accept=".m3u,.m3u8,.txt" style="width:100%;font-size:12px"><small id="beinImportStatus" style="display:block;margin-top:6px">'+beinImportStatus+'</small></div><div class="chips" id="chCats">'+cats.map(function(c){return '<button class="chip" data-act="chcat" data-c="'+c+'" aria-pressed="'+(chanCat===c)+'">'+(c==='all'?t('all'):CATS[c][L()])+'</button>'}).join('')+'</div><div class="chlist" id="chList"></div></aside></div><div class="row-h" style="padding-top:20px"><h2 class="h2">'+t('guide')+'</h2></div>'+epgHTML()+'</div>';
-  fillChList();setChannel(curChan);
+  fillChList();
+  if(CH.length){
+    curChan=curChan&&CBY[curChan]?curChan:CH[0].id;
+    setChannel(curChan);
+  }else{
+    curChan=null;
+    $('#plBox').innerHTML='<div class="pl-error" style="padding:30px;text-align:center"><b style="display:block;font-size:18px;margin-bottom:8px">لا توجد قنوات حالياً</b><p style="margin:0">استورد ملف M3U من جهازك لإضافة القنوات من جديد.</p></div>';
+    $('#np').innerHTML='';
+  }
   var s=$('#epgS');if(s)s.scrollLeft=Math.max(0,nowMin()*PX-40);
 }
 function epgHTML(){
@@ -798,10 +802,13 @@ function channelLogo(c){
 }
 function fillChList(){
   var l=$('#chList');if(!l)return;
-  l.innerHTML=CH.filter(function(c){return chanCat==='all'||c.cat===chanCat}).map(function(c){var a=onair(c);return '<button class="chr" data-act="chan" data-id="'+c.id+'" aria-current="'+(c.id===curChan)+'"><span class="logo" style="--hue:'+c.hue+'">'+channelLogo(c)+'</span><span><b>'+c.num+' · '+c.t[L()]+'</b><small>'+a.cur.t[L()]+'</small></span></button>'}).join('');
+  var rows=CH.filter(function(c){return chanCat==='all'||c.cat===chanCat}).map(function(c){var a=onair(c);return '<button class="chr" data-act="chan" data-id="'+c.id+'" aria-current="'+(c.id===curChan)+'"><span class="logo" style="--hue:'+c.hue+'">'+channelLogo(c)+'</span><span><b>'+c.num+' · '+c.t[L()]+'</b><small>'+a.cur.t[L()]+'</small></span></button>'}).join('');
+  l.innerHTML=rows||'<div class="empty" style="padding:24px 8px;font-size:1rem">لا توجد قنوات مضافة بعد</div>';
 }
 function setChannel(id){
-  curChan=id;var c=CBY[id],a=onair(c),m=nowMin();
+  var c=CBY[id];
+  if(!c){curChan=null;if(livePlayer){livePlayer.destroy();livePlayer=null}var box=$('#plBox'),np=$('#np');if(box)box.innerHTML='<div class="pl-error" style="padding:30px;text-align:center">لا توجد قنوات حالياً. استورد ملف M3U لإضافتها.</div>';if(np)np.innerHTML='';return}
+  curChan=id;var a=onair(c),m=nowMin();
   if(livePlayer){livePlayer.destroy();livePlayer=null}
   var liveData=c.stream?{streams:[{url:c.stream,quality:'Live',container:'ts'}]}:null;
   if(c.stream){
