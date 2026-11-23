@@ -692,7 +692,7 @@ var visible=function(it){return !(S.hideAdult&&it.age>=18)};
 var fmt=function(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
 var nowMin=function(){var d=new Date();return d.getHours()*60+d.getMinutes()};
 var EPGC={};
-function epg(ch){if(EPGC[ch.id])return EPGC[ch.id];var r=rng(ch.seed*31+7),pool=POOL[ch.cat],out=[],m=0,i=Math.floor(r()*4);while(m<1440+300){var d=[45,60,90,120][Math.floor(r()*4)],p=pool[(i++)%pool.length];out.push({s:m,e:m+d,t:[p[0],p[1]]});m+=d}return EPGC[ch.id]=out}
+function epg(ch){if(EPGC[ch.id])return EPGC[ch.id];var r=rng(ch.seed*31+7),pool=POOL[ch.cat]||POOL.sports,out=[],m=0,i=Math.floor(r()*4);while(m<1440+300){var d=[45,60,90,120][Math.floor(r()*4)],p=pool[(i++)%pool.length];out.push({s:m,e:m+d,t:[p[0],p[1]]});m+=d}return EPGC[ch.id]=out}
 function onair(ch){var e=epg(ch),m=nowMin(),k=0;for(var i=0;i<e.length;i++){if(e[i].s<=m&&m<e[i].e){k=i;break}}return {cur:e[k],next:e[k+1]||e[0],idx:k,list:e}}
 var inList=function(id){return S.list.indexOf(id)>-1};
 var metaLine=function(it){return '<span>'+it.year+'</span>'+(it.type==='series'?'<span>'+it.seasons+' '+t('seasonsN')+'</span>':(it.dur?'<span>'+it.dur+' '+t('min')+'</span>':''))+'<span class="st">★ '+it.rate+'</span>'+(it.source?'':'<span class="tag">+'+it.age+'</span>')};
