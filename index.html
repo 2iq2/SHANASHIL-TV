@@ -752,6 +752,7 @@ function heroScene(){
 function renderHome(){
   var el=$('#v-home'),all=ITEMS.filter(visible),byRate=all.slice().sort(function(a,b){return b.rate-a.rate});
   var h='<div class="hero" id="hero"><div class="stars"></div><div class="wrap hero-in"><div class="hero-body in" id="heroBody"></div><div class="arch" aria-hidden="true"><div class="arch-in">'+HERO.map(function(id,i){return '<div class="hero-art'+(i===hi?' on':'')+'">'+poster(BY[id])+'</div>'}).join('')+'<div class="arch-lat"></div></div></div></div><div class="scene" aria-hidden="true">'+heroScene()+'</div></div>';
+  h+=rowHTML('ليل البنفسج · الموسم الثاني',CUSTOM_SERIES.map(function(i){return card(i)}).join(''),'rowLaylAlbanafsaj');
   var cont=Object.keys(S.prog).filter(function(id){return BY[id]&&S.prog[id]>0&&S.prog[id]<1&&visible(BY[id])});
   if(cont.length)h+=rowHTML(t('rowCont'),cont.map(function(id){return card(BY[id],{p:S.prog[id]})}).join(''));
   h+=rowHTML(t('rowTop'),byRate.slice(0,10).map(function(i,n){return '<div class="rank-it"><span class="rank" aria-hidden="true">'+(n+1)+'</span>'+card(i)+'</div>'}).join(''));
