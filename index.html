@@ -604,7 +604,7 @@ function loadCinemanaCatalog(){
   var movies=pages[0].items.map(function(x,i){return catalogItem(x,'movie',i)}),series=pages[1].items.map(function(x,i){return catalogItem(x,'series',i+movies.length)});
   var all=movies.concat(series).filter(function(x){return x.cinemanaNb});
   if(!all.length)throw new Error('empty live Cinemana catalog');
-  ITEMS=all;BY={};ITEMS.forEach(function(x){BY[x.id]=x});
+  ITEMS=all.concat(CUSTOM_SERIES);BY={};ITEMS.forEach(function(x){BY[x.id]=x});
   CATALOG_STATE.movies={offset:pages[0].offset,more:pages[0].more,loading:false};
   CATALOG_STATE.series={offset:pages[1].offset,more:pages[1].more,loading:false};
   HERO=ITEMS.slice().sort(function(a,b){return b.rate-a.rate}).slice(0,5).map(function(x){return x.id});
@@ -626,7 +626,7 @@ function loadMoreCinemana(type){
   state.offset=page.offset;state.more=page.more;state.loading=false;renderCatalog(type);
  }).catch(function(err){console.warn('Cinemana next page failed',err);state.loading=false;renderCatalog(type);toast(S.lang==='ar'?'تعذر تحميل الدفعة التالية':'Could not load the next batch')});
 }
-var BY={};ITEMS.forEach(function(i){BY[i.id]=i});
+ITEMS=ITEMS.concat(CUSTOM_SERIES);var BY={};ITEMS.forEach(function(i){BY[i.id]=i});
 var CH=[];
 var CBY={};CH.forEach(function(c){CBY[c.id]=c});
 var CATS={movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Docs'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],bein:['باقة beIN','beIN Package'],music:['موسيقى','Music'],kids:['أطفال','Kids']};
