@@ -545,6 +545,23 @@ var RAW=[
 ];
 var ITEMS=RAW.map(function(r){var sd=r[11],pk=function(k){return NAMES[(sd+k*5)%NAMES.length]},sr=r[1]==='series';return {id:r[0],type:r[1],t:[r[2],r[3]],year:r[4],dur:sr?48:r[5],seasons:sr?r[5]:0,rate:r[6],age:r[7],genres:r[8].split(','),motif:r[9],pal:r[10],seed:sd,d:[r[12],r[13]],dir:pk(0),cast:[pk(1),pk(2),pk(3)]}});
 var CATALOG_READY=false;
+/* Licensed local catalogue entries supplied by the site owner. */
+var CUSTOM_SERIES=[{
+ id:'shanashil-layl-albanafsaj-s02',type:'series',
+ t:['ليل البنفسج','Layl Albanafsaj'],year:2026,dur:0,seasons:2,rate:0,age:12,
+ genres:['drama','romance'],motif:'window',pal:4,seed:26011,
+ d:['الموسم الثاني — الحلقات المتاحة حالياً من 1 إلى 7.','Season 2 — episodes 1 to 7 are currently available.'],
+ dir:['',''],cast:[],source:'licensed-direct',
+ customEpisodes:[
+  {season:2,episode:1,title:'الحلقة 1',url:'http://130.193.165.22/Flussonic248/ArabicTVSeries2/LaylAlbanafsaj-S02E01.mp4'},
+  {season:2,episode:2,title:'الحلقة 2',url:'http://130.193.165.22/Flussonic248/ArabicTVSeries2/LaylAlbanafsaj-S02E02.mp4'},
+  {season:2,episode:3,title:'الحلقة 3',url:'http://130.193.165.22/Flussonic248/ArabicTVSeries2/LaylAlbanafsaj-S02E03.mp4'},
+  {season:2,episode:4,title:'الحلقة 4',url:'http://130.193.165.22/Flussonic248/ArabicTVSeries2/LaylAlbanafsaj-S02E04.mp4'},
+  {season:2,episode:5,title:'الحلقة 5',url:'http://130.193.165.22/Flussonic248/ArabicTVSeries2/LaylAlbanafsaj-S02E05.mp4'},
+  {season:2,episode:6,title:'الحلقة 6',url:'http://130.193.165.22/Flussonic248/ArabicTVSeries2/LaylAlbanafsaj-S02E06.mp4'},
+  {season:2,episode:7,title:'الحلقة 7',url:'http://130.193.165.22/Flussonic248/ArabicTVSeries2/LaylAlbanafsaj-S02E07.mp4'}
+ ]
+}];
 var GENRE_KEYS={drama:'drama',thriller:'thriller',comedy:'comedy',history:'history',adventure:'adventure',romance:'romance',crime:'crime',fantasy:'fantasy',mystery:'mystery',family:'family',action:'adventure',animation:'fantasy',documentary:'history',horror:'thriller',war:'history',biography:'drama',sci:'fantasy',western:'adventure',music:'drama'};
 var CATALOG_PAGE_SIZE=30;
 var CATALOG_STATE={movies:{offset:0,more:true,loading:false},series:{offset:0,more:true,loading:false}};
@@ -575,7 +592,7 @@ function loadStaticCinemanaCatalog(){
   var movies=(data[0].metas||[]).map(function(x,i){return catalogItem(x,'movie',i)}),series=(data[1].metas||[]).map(function(x,i){return catalogItem(x,'series',i+movies.length)});
   var all=movies.concat(series).filter(function(x){return x.cinemanaNb});
   if(!all.length)throw new Error('empty Cinemana fallback');
-  ITEMS=all;BY={};ITEMS.forEach(function(x){BY[x.id]=x});
+  ITEMS=all.concat(CUSTOM_SERIES);BY={};ITEMS.forEach(function(x){BY[x.id]=x});
   CATALOG_STATE.movies={offset:0,more:false,loading:false};CATALOG_STATE.series={offset:0,more:false,loading:false};
   HERO=ITEMS.slice().sort(function(a,b){return b.rate-a.rate}).slice(0,5).map(function(x){return x.id});
   CATALOG_READY=true;render(cur);
@@ -905,7 +922,7 @@ function closeM(el){if(el.id==='m-player'&&playerCtl){endPlayer()}el.hidden=true
 function closeAll(keepDrawer){stack.slice().forEach(function(m){if(!(keepDrawer&&m.id==='drawer'))closeM(m)})}
 function endPlayer(){if(playerCtl){if(playerId&&playerCtl.total){var f=playerCtl.pos/playerCtl.total;if(f>=.98||f<.01)delete S.prog[playerId];else S.prog[playerId]=Math.max(.02,f);save()}playerCtl.destroy();playerCtl=null;playerId=null;if(cur==='home'){var y=window.scrollY;renderHome();window.scrollTo(0,y)}}}
 function openDetail(id){
-  var it=BY[id];dState={id:id,season:1,episodes:[]};
+  var it=BY[id];dState={id:id,season:it&&it.customEpisodes?2:1,episodes:it&&it.customEpisodes?it.customEpisodes.slice():[]};
   var sim=ITEMS.filter(function(x){return x.id!==id&&visible(x)&&x.genres.some(function(g){return it.genres.indexOf(g)>-1})}).slice(0,8);
   var h='<div class="sheet"><button class="ibtn x" data-act="close" aria-label="'+t('close')+'">'+IC.x+'</button><div class="dt-bg">'+poster(it,true)+'</div><div class="dt"><div class="dt-poster">'+poster(it)+'</div><div class="dt-info"><div class="eyebrow">'+(it.type==='series'?t('series'):t('movies'))+'</div><h2>'+title(it)+'</h2><div class="meta">'+metaLine(it)+'</div><p id="detail-description">'+escHTML(it.d[L()]|| (S.lang==='ar'?'جاري جلب الوصف من سينمانا…':'Loading description from Cinemana…'))+'</p><div class="hero-btns"><button class="btn" data-act="play" data-id="'+id+'">'+IC.play+t('play')+'</button>'+(it.source?'':'<button class="btn glass" data-act="trailer" data-id="'+id+'">'+t('trailer')+'</button>')+'<button class="btn glass" data-act="add" data-id="'+id+'" aria-pressed="'+inList(id)+'">'+(inList(id)?IC.check+t('inList'):IC.plus+t('addList'))+'</button></div>'
    +'<dl class="facts"><dt>'+t('genre')+'</dt><dd>'+gnames(it)+'</dd>'+(it.source?'':'<dt>'+t('director')+'</dt><dd>'+it.dir[L()]+'</dd><dt>'+t('cast')+'</dt><dd>'+it.cast.map(function(c){return c[L()]}).join(L()?', ':'، ')+'</dd>')+'</dl></div></div><div class="dt-low">';
@@ -1002,6 +1019,16 @@ function cinemanaRequest(payload){
 }
 function openPlayer(id,ep,trailer,season){
  var it=BY[id],ttl=title(it)+(it.type==='series'&&ep?' · '+t('episode')+' '+ep:'');
+ if(it&&it.customEpisodes){
+  if(trailer){toast('لا يتوفر إعلان لهذا العنوان.');return}
+  var chosen=it.customEpisodes.find(function(x){return x.season===(season||2)&&x.episode===(ep||1)});
+  if(!chosen){toast('الحلقة المطلوبة غير متاحة.');return}
+  openM($('#m-player'),'<div class="sheet" style="width:min(1100px,100%)"><button class="ibtn x" data-act="close" aria-label="'+t('close')+'">'+IC.x+'</button><div class="pl-head">'+ttl+'</div><div id="pBox" style="padding:0 16px 16px"><div class="pl-error">جاري فتح الحلقة…</div></div></div>','.x');
+  playerId=id;
+  var directBox=$('#pBox');
+  if(directBox)playerCtl=mountPlayer(directBox,{it:it,title:ttl},{streams:[{url:chosen.url,quality:'MP4',container:'mp4'}],subtitles:[]});
+  return;
+ }
  if(!it.cinemanaNb){toast('هذا المحتوى غير مرتبط بمصدر تشغيل');return}
  if(trailer){toast('لا يتوفر إعلان لهذا العنوان من مصدر سينمانا');return}
  openM($('#m-player'),'<div class="sheet" style="width:min(1100px,100%)"><button class="ibtn x" data-act="close" aria-label="'+t('close')+'">'+IC.x+'</button><div class="pl-head">'+ttl+'</div><div id="pBox" style="padding:0 16px 16px"><div class="pl-error">جاري جلب روابط سينمانا والجودات والترجمة…</div></div></div>','.x');
