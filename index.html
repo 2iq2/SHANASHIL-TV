@@ -714,7 +714,7 @@ function poster(it,wide){
  if(posterURL){return '<span class="art real-art"><img src="'+escHTML(posterURL)+'" alt="" loading="lazy" referrerpolicy="no-referrer">'+(!wide?'<span class="pt"><i>'+(it.type==='series'?(L()?'Series':'مسلسل'):it.year)+'</i><b>'+title(it)+'</b></span>':'')+'</span>'}
  var r=rng(it.seed*977+it.pal*13+5),p=PAL[it.pal%PAL.length],gx=18+r()*64,gy=8+r()*34;
  var bg='radial-gradient(70% 48% at '+gx+'% '+gy+'%,color-mix(in srgb,'+p[2]+' 40%,transparent),transparent 72%),radial-gradient(90% 40% at '+(100-gx)+'% 100%,color-mix(in srgb,'+p[2]+' 20%,transparent),transparent 72%),linear-gradient(180deg,'+p[0]+','+p[1]+')';
- var txt='';if(!wide&&it.genres){txt='<span class="pt"><i>'+(it.type==='series'?(L()?'Series':'مسلسل'):it.year)+' · '+G[it.genres[0]][L()]+'</i><b>'+it.t[L()]+'</b></span>'}
+ var txt='';if(!wide&&it.genres){txt='<span class="pt"><i>'+(it.type==='series'?(L()?'Series':'مسلسل'):it.year)+' · '+G[it.genres[0]][L()]+'</i><b>'+escHTML(it.t[L()])+'</b></span>'}
  return '<span class="art" style="background:'+bg+'"><svg viewBox="0 0 300 450" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+motif(it,r,p)+'</svg>'+txt+'</span>';
 }
 
@@ -829,8 +829,8 @@ function epgHTML(){
   var W=1440*PX,tk='';
   for(var h=0;h<24;h++)tk+='<span style="left:'+(h*60*PX)+'px">'+fmt(h*60)+'</span>';
   var rows=CH.map(function(c){
-    var ps=epg(c).filter(function(p){return p.s<1440}).map(function(p){var e=Math.min(p.e,1440),on=p.s<=nowMin()&&nowMin()<p.e;return '<button class="epg-p'+(on?' on':'')+'" data-act="chan" data-id="'+c.id+'" style="left:'+(p.s*PX)+'px;width:'+((e-p.s)*PX-4)+'px"><b>'+p.t[L()]+'</b><small>'+fmt(p.s)+' – '+fmt(p.e)+'</small></button>'}).join('');
-    return '<div class="epg-r"><button class="epg-ch" data-act="chan" data-id="'+c.id+'"><span class="logo" style="--hue:'+c.hue+'">'+channelLogo(c)+'</span><b>'+c.t[L()]+'</b></button><div class="epg-tl" style="width:'+W+'px">'+ps+'</div></div>'}).join('');
+    var ps=epg(c).filter(function(p){return p.s<1440}).map(function(p){var e=Math.min(p.e,1440),on=p.s<=nowMin()&&nowMin()<p.e;return '<button class="epg-p'+(on?' on':'')+'" data-act="chan" data-id="'+escHTML(c.id)+'" style="left:'+(p.s*PX)+'px;width:'+((e-p.s)*PX-4)+'px"><b>'+escHTML(p.t[L()])+'</b><small>'+fmt(p.s)+' – '+fmt(p.e)+'</small></button>'}).join('');
+    return '<div class="epg-r"><button class="epg-ch" data-act="chan" data-id="'+escHTML(c.id)+'"><span class="logo" style="--hue:'+Number(c.hue||0)+'">'+channelLogo(c)+'</span><b>'+escHTML(c.t[L()])+'</b></button><div class="epg-tl" style="width:'+W+'px">'+ps+'</div></div>'}).join('');
   return '<div class="epg" dir="ltr"><div class="epg-s" id="epgS"><div class="epg-in" style="width:'+(150+W)+'px"><div class="epg-h"><div class="epg-corner"></div><div class="epg-times" style="width:'+W+'px">'+tk+'</div></div>'+rows+'<div class="epg-now" style="left:'+(150+nowMin()*PX)+'px"></div></div></div></div>';
 }
 function channelLogo(c){
@@ -869,7 +869,7 @@ function mountPlayer(box,o,data){
  if(!streams.length){box.innerHTML='<div class="pl-error">ماكو روابط تشغيل متاحة حالياً لهذا العنوان. جرّب حلقة أو جودة ثانية لاحقاً.</div>';return {destroy:function(){box.innerHTML=''},pos:0,total:0}}
  var current=0,stream=streams[0],activeSubtitle=-1,subtitleTrack=null,subtitleBlobUrl=null,subtitleLoadToken=0,mpegtsPlayer=null;
   function playerHTML(){
-   return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+escHTML(safeMediaURL(o.it&&o.it.poster,true))+'">'+(stream.container==='ts'?'':'<source src="'+escHTML(safeMediaURL(stream.url,false))+'" type="'+(stream.container==='mp4'?'video/mp4':'video/'+escHTML(String(stream.container).toLowerCase()))+'">')+'</video><div class="real-player-foot"><span>'+stream.quality+' · '+stream.container.toUpperCase()+'</span><select class="sel" id="cineQuality" aria-label="اختيار الجودة">'+streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+escHTML(x.quality)+' · '+escHTML(x.container.toUpperCase())+'</option>'}).join('')+'</select><select class="sel" id="cineSubtitle" aria-label="اختيار الترجمة"'+(!subs.length?' disabled':'')+'><option value="-1">الترجمة: إيقاف</option>'+subs.map(function(x,i){var label=x.language==='ar'?'العربية':(x.language==='en'?'English':(x.language||'ترجمة '+(i+1)));return '<option value="'+i+'">'+escHTML(label)+'</option>'}).join('')+'</select></div></div>';
+   return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+escHTML(safeMediaURL(o.it&&o.it.poster,true))+'">'+(stream.container==='ts'?'':'<source src="'+escHTML(safeMediaURL(stream.url,false))+'" type="'+(stream.container==='mp4'?'video/mp4':'video/'+escHTML(String(stream.container).toLowerCase()))+'">')+'</video><div class="real-player-foot"><span>'+escHTML(stream.quality)+' · '+escHTML(stream.container.toUpperCase())+'</span><select class="sel" id="cineQuality" aria-label="اختيار الجودة">'+streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+escHTML(x.quality)+' · '+escHTML(x.container.toUpperCase())+'</option>'}).join('')+'</select><select class="sel" id="cineSubtitle" aria-label="اختيار الترجمة"'+(!subs.length?' disabled':'')+'><option value="-1">الترجمة: إيقاف</option>'+subs.map(function(x,i){var label=x.language==='ar'?'العربية':(x.language==='en'?'English':(x.language||'ترجمة '+(i+1)));return '<option value="'+i+'">'+escHTML(label)+'</option>'}).join('')+'</select></div></div>';
   }
   box.innerHTML=playerHTML();
   var video=$('#cineVideo',box),destroyed=false;
