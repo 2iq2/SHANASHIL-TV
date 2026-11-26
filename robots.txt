@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://2iq2.github.io/SHANASHIL-TV/sitemap.xml
