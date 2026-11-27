@@ -986,7 +986,7 @@ function loadCinemanaDescription(it){
   }
  });
 }
-function loadSeriesEpisodes(it){var target=dState.id;cinemanaRequest({mode:'episodes',nb:it.cinemanaNb,type:'series'}).then(function(data){if(dState.id!==target)return;dState.episodes=data.episodes||[];var seasons=$('#seasons'),eps=$('#eps');if(seasons)seasons.innerHTML=seasonChips(it);if(eps)eps.innerHTML=epsHTML(it)}).catch(function(){var eps=$('#eps');if(eps)eps.innerHTML='<div class="empty">تعذر تحميل قائمة الحلقات من المصدر.</div>'})}
+function loadSeriesEpisodes(it){var target=dState.id;cinemanaRequest({mode:'episodes',nb:it.cinemanaNb,type:'series'}).then(function(data){if(dState.id!==target)return;dState.episodes=data.episodes||[];if(!dState.episodes.some(function(x){return x.season===dState.season})&&dState.episodes.length){dState.season=Math.min.apply(null,dState.episodes.map(function(x){return x.season}))}var seasons=$('#seasons'),eps=$('#eps');if(seasons)seasons.innerHTML=seasonChips(it);if(eps)eps.innerHTML=epsHTML(it)}).catch(function(){var eps=$('#eps');if(eps)eps.innerHTML='<div class="empty">تعذر تحميل قائمة الحلقات من المصدر.</div>'})}
 var CINEMANA_API='https://cinemana.shabakaty.com/api/android/';
 function cinemanaGet(path){
  return fetch(CINEMANA_API+path,{method:'GET',headers:{Accept:'application/json'}}).then(function(r){
