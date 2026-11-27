@@ -952,8 +952,8 @@ function openDetail(id){
  if(it.cinemanaNb)loadCinemanaDescription(it);
  if(it.type==='series'&&it.cinemanaNb)loadSeriesEpisodes(it);
 }
-function seasonChips(it){var seasons=dState.episodes.map(function(x){return x.season}).filter(function(x,i,a){return a.indexOf(x)>-1}).sort(function(a,b){return a-b});if(!seasons.length)seasons=[1];return seasons.map(function(n){return '<button class="chip" data-act="season" data-n="'+n+'" aria-pressed="'+(dState.season===n)+'">'+t('season')+' '+n+'</button>'}).join('')}
-function epsHTML(it){var eps=dState.episodes.filter(function(x){return x.season===dState.season}).sort(function(a,b){return a.episode-b.episode});if(!eps.length)return '<div class="empty">جاري تحميل الحلقات من سينمانا…</div>';return eps.map(function(e){return '<button class="ep" data-act="play" data-id="'+it.id+'" data-ep="'+e.episode+'" data-season="'+e.season+'"><b>'+e.episode+'</b><span>'+escHTML(e.title||('الحلقة '+e.episode))+'</span><small>'+('S'+e.season+' · E'+e.episode)+'</small></button>'}).join('')}
+function seasonChips(it){var seasons=dState.episodes.map(function(x){return x.season}).filter(function(x,i,a){return Number.isInteger(x)&&x>0&&a.indexOf(x)===i}).sort(function(a,b){return a-b});if(!seasons.length)seasons=[1];return seasons.map(function(n){return '<button class="chip" data-act="season" data-n="'+n+'" aria-pressed="'+(dState.season===n)+'">'+t('season')+' '+n+'</button>'}).join('')}
+function epsHTML(it){var eps=dState.episodes.filter(function(x){return x.season===dState.season}).sort(function(a,b){return a.episode-b.episode||a.id.localeCompare(b.id,undefined,{numeric:true})});if(!eps.length)return '<div class="empty">جاري تحميل الحلقات من سينمانا…</div>';return eps.map(function(e){return '<button class="ep" data-act="play" data-id="'+it.id+'" data-ep="'+e.episode+'" data-season="'+e.season+'"><b>'+e.episode+'</b><span>'+escHTML(e.title||('الحلقة '+e.episode))+'</span><small>'+('S'+e.season+' · E'+e.episode)+'</small></button>'}).join('')}
 var CINEMANA_DETAIL_CACHE={};
 function loadCinemanaDescription(it){
  var nb=String(it&&it.cinemanaNb||''),target=it&&it.id;
@@ -997,6 +997,18 @@ function cinemanaGet(path){
 function cinemanaSafeMedia(url){
  return typeof url==='string'&&/^https:\/\/([a-z0-9-]+\.)*shabakaty\.(com|cc)\//i.test(url);
 }
+function cinemanaOrdinal(value,fallback){
+ if(value===null||value===undefined||value==='')return fallback;
+ if(typeof value==='number'&&Number.isFinite(value))return Math.floor(value);
+ var match=String(value).trim().match(/\d+/);
+ return match?parseInt(match[0],10):fallback;
+}
+function cinemanaSeasonNumber(item){
+ return cinemanaOrdinal(item&&(item.season!==undefined?item.season:(item.seasonNumber!==undefined?item.seasonNumber:item.season_number)),1);
+}
+function cinemanaEpisodeNumber(item){
+ return cinemanaOrdinal(item&&(item.episodeNummer!==undefined?item.episodeNummer:(item.episodeNumber!==undefined?item.episodeNumber:(item.episode_number!==undefined?item.episode_number:(item.episode!==undefined?item.episode:item.number)))),0);
+}
 function cinemanaRequest(payload){
  var nb=String(payload&&payload.nb||''),type=payload&&payload.type==='series'?'series':'movie';
  if(!/^\d{1,12}$/.test(nb))return Promise.reject(new Error('INVALID_TITLE_ID'));
@@ -1004,8 +1016,10 @@ function cinemanaRequest(payload){
   if(type!=='series')return Promise.resolve({episodes:[]});
   return cinemanaGet('videoSeason/id/'+encodeURIComponent(nb)).then(function(raw){
    var episodes=(Array.isArray(raw)?raw:[]).filter(function(x){return /^\d{1,12}$/.test(String(x&&x.nb||''))}).map(function(x){
-    return {id:String(x.nb),season:Number(x.season||1),episode:Number(x.episodeNummer||0),title:String(x.en_title||x.ar_title||x.title||'')};
-   }).filter(function(x){return x.episode>0});
+    return {id:String(x.nb),season:cinemanaSeasonNumber(x),episode:cinemanaEpisodeNumber(x),title:String(x.en_title||x.ar_title||x.title||'')};
+   }).filter(function(x){return x.season>0&&x.episode>0}).sort(function(a,b){
+    return a.season-b.season||a.episode-b.episode||a.id.localeCompare(b.id,undefined,{numeric:true});
+   });
    return {episodes:episodes};
   });
  }
@@ -1014,7 +1028,7 @@ function cinemanaRequest(payload){
   var season=Number(payload.season||1),episode=Number(payload.episode||1);
   if(!Number.isInteger(season)||!Number.isInteger(episode)||season<1||episode<1||season>99||episode>999)return Promise.reject(new Error('INVALID_EPISODE'));
   episodeRequest=cinemanaGet('videoSeason/id/'+encodeURIComponent(nb)).then(function(raw){
-   var found=(Array.isArray(raw)?raw:[]).filter(function(x){return Number(x&&x.season)===season&&Number(x&&x.episodeNummer)===episode});
+   var found=(Array.isArray(raw)?raw:[]).filter(function(x){return cinemanaSeasonNumber(x)===season&&cinemanaEpisodeNumber(x)===episode});
    if(found.length!==1||!/^\d{1,12}$/.test(String(found[0]&&found[0].nb||'')))throw new Error('EPISODE_NOT_FOUND');
    videoId=String(found[0].nb);
   });
