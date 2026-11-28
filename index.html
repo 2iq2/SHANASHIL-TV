@@ -721,7 +721,7 @@ function loadMoreCinemana(type){
 ITEMS=ITEMS.concat(CUSTOM_SERIES);var BY={};ITEMS.forEach(function(i){BY[i.id]=i});
 var CH=[];
 var CBY={};CH.forEach(function(c){CBY[c.id]=c});
-var CATS={general:['عامة','General'],movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Docs'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],religious:['دينية','Religious'],bein:['باقة beIN','beIN Package'],music:['موسيقى','Music'],kids:['أطفال','Kids']};
+var CATS={general:['عامة','General'],movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Documentary'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],religious:['دينية','Religious'],bein:['باقة beIN','beIN Package'],music:['موسيقى','Music'],kids:['أطفال','Kids'],education:['تعليم','Education'],business:['اقتصاد','Business'],culture:['ثقافة','Culture'],weather:['طقس','Weather']};
 var POOL={
 movies:[['فيلم السهرة','Late Show'],['سينما الشناشيل','Shanashil Cinema'],['أفلام الخليج','Gulf Films'],['ليلة الكلاسيك','Classics Night']],
 drama:[['بيت العائلة','Family House'],['حكايات الحي','Neighbourhood Tales'],['مسلسل الليلة','Tonight\'s Series'],['دراما الأمس','Yesterday\'s Drama']],
@@ -896,10 +896,69 @@ function sharedBeinFromRows(rows){
  CBY={};CH.forEach(function(c){CBY[c.id]=c});
  if(CH.length){curChan=curChan&&CBY[curChan]?curChan:CH[0].id;chanCat='all'}
 }
+var WORLD_TV_API='https://iptv-org.github.io/api/';
+var worldChannelsLoaded=false,worldChannelsCount=0,chanLimit=300;
+function worldCountryName(code,lang){
+ try{return new Intl.DisplayNames([lang===0?'ar':'en'],{type:'region'}).of(String(code||'').toUpperCase())||String(code||'') }catch(e){return String(code||'')}
+}
+function worldArabicName(ch){
+ var names=[ch.name].concat(Array.isArray(ch.alt_names)?ch.alt_names:[]);
+ for(var i=0;i<names.length;i++)if(/[\\u0600-\\u06FF]/.test(String(names[i]||'')))return String(names[i]);
+ var n=String(ch.name||'قناة');var special={'BBC News':'بي بي سي نيوز','BBC World News':'بي بي سي وورلد نيوز','CNN International':'سي إن إن إنترناشونال','Al Jazeera English':'الجزيرة الإنجليزية','Al Jazeera Arabic':'الجزيرة','France 24':'فرانس 24','Sky News':'سكاي نيوز','DW English':'دويتشه فيله','NHK World':'إن إتش كي وورلد','CGTN':'سي جي تي إن','Euronews':'يورونيوز','Bloomberg TV':'بلومبرغ'};
+ if(special[n])return special[n];
+ var dig={'sch':'ش','tch':'تش','sh':'ش','ch':'تش','th':'ث','kh':'خ','gh':'غ','ph':'ف','oo':'و','ee':'ي','ou':'او','ai':'اي','ei':'اي','ay':'اي','ck':'ك','ng':'نغ','qu':'ك'};
+ var one={a:'ا',b:'ب',c:'ك',d:'د',e:'ي',f:'ف',g:'ج',h:'ه',i:'ي',j:'ج',k:'ك',l:'ل',m:'م',n:'ن',o:'و',p:'ب',q:'ك',r:'ر',s:'س',t:'ت',u:'و',v:'ڤ',w:'و',x:'كس',y:'ي',z:'ز'};
+ return n.replace(/[A-Za-z]+/g,function(word){var x=word.toLowerCase().replace(/sch|tch|sh|ch|th|kh|gh|ph|oo|ee|ou|ai|ei|ay|ck|ng|qu|[a-z]/g,function(k){return dig[k]||one[k]||k});return x}).replace(/\\s+/g,' ').trim();
+}
+function worldCategory(categories){
+ var a=(categories||[]).map(function(x){return String(x).toLowerCase()});
+ if(a.indexOf('sports')>-1)return 'sports';
+ if(a.indexOf('news')>-1)return 'news';
+ if(a.indexOf('documentary')>-1)return 'docs';
+ if(a.indexOf('education')>-1)return 'education';
+ if(a.indexOf('business')>-1)return 'business';
+ if(a.indexOf('music')>-1)return 'music';
+ if(a.indexOf('kids')>-1||a.indexOf('animation')>-1)return 'kids';
+ if(a.indexOf('religious')>-1)return 'religious';
+ if(a.indexOf('movies')>-1)return 'movies';
+ if(a.indexOf('series')>-1||a.indexOf('entertainment')>-1)return 'general';
+ if(a.indexOf('weather')>-1)return 'weather';
+ if(a.indexOf('culture')>-1)return 'culture';
+ return 'general';
+}
+async function loadWorldChannels(){
+ if(worldChannelsLoaded)return;
+ var endpoints=['channels.json','streams.json','logos.json'];
+ var data=await Promise.all(endpoints.map(function(p){return fetch(WORLD_TV_API+p,{cache:'no-cache'}).then(function(r){if(!r.ok)throw new Error('World TV API '+r.status);return r.json()})}));
+ var channels=data[0],streams=data[1],logos=data[2],byId={},logoById={},seen={};
+ channels.forEach(function(c){if(c&&c.id&&!c.closed&&!c.is_nsfw)byId[c.id]=c});
+ logos.forEach(function(l){if(l&&l.channel&&l.url&&(l.in_use||!logoById[l.channel]))logoById[l.channel]=l.url});
+ function score(st){var u=String(st.url||'').toLowerCase(),q=String(st.quality||'').toLowerCase();return (u.indexOf('.m3u8')>-1?50:0)+(q.indexOf('1080')>-1?12:q.indexOf('720')>-1?8:0)+(st.feed?1:0)}
+ var best={};
+ streams.forEach(function(st){if(!st||!st.channel||!byId[st.channel]||!/^https:\\/\\//i.test(st.url||''))return;var labels=(st.labels||[]).join(' ').toLowerCase();if(/geo.?blocked|blocklisted|redirect|placeholder/.test(labels))return;if(!best[st.channel]||score(st)>score(best[st.channel]))best[st.channel]=st});
+ var rows=[];
+ Object.keys(best).forEach(function(id){
+  var c=byId[id],st=best[id],cat=worldCategory(c.categories),url=String(st.url||'');
+  if(!url||seen[url])return;seen[url]=1;
+  var country=String(c.country||'').toUpperCase(),ar=worldArabicName(c),en=String(c.name||id),logo=logoById[id]||'';
+  rows.push({id:'world-'+id.replace(/[^A-Za-z0-9_-]/g,'-'),num:rows.length+1,t:[ar,en],cat:cat,hue:cat==='sports'?278:(cat==='news'?195:(cat==='religious'?42:160)),motif:'sports',pal:0,seed:27000+rows.length,short:ar.slice(0,2),logo:logo,stream:url,pack:cat,packLabel:worldCountryName(country,0)+' · '+(CATS[cat][0]),country:country,countryName:worldCountryName(country,0),world:true});
+ });
+ rows.sort(function(a,b){return (a.country||'').localeCompare(b.country||'')||a.cat.localeCompare(b.cat)||a.t[1].localeCompare(b.t[1])});
+ rows.forEach(function(c,i){c.num=i+1});
+ var existing={};CH.forEach(function(c){existing[String(c.stream||'').toLowerCase()]=1;existing[String(c.t[0]||'').toLowerCase()]=1});
+ rows=rows.filter(function(c){var k=String(c.stream||'').toLowerCase(),n=String(c.t[0]||'').toLowerCase();if(existing[k]||existing[n])return false;existing[k]=1;return true});
+ worldChannelsCount=rows.length;CH=CH.concat(rows);CBY={};CH.forEach(function(c){CBY[c.id]=c});worldChannelsLoaded=true;
+}
 async function loadSharedBeinChannels(){
- var res=await fetch(SHANASHIL_SUPABASE_URL+'/rest/v1/shared_tv_channels?select=name,logo,stream_url,pack,position&order=position.asc',{headers:{apikey:SHANASHIL_SUPABASE_KEY,Authorization:'Bearer '+SHANASHIL_SUPABASE_KEY}});
- if(!res.ok)throw new Error('تعذر تحميل القنوات المشتركة ('+res.status+')');
- sharedBeinFromRows(await res.json());sharedBeinLoaded=true;
+ var failures=[];
+ try{
+  var res=await fetch(SHANASHIL_SUPABASE_URL+'/rest/v1/shared_tv_channels?select=name,logo,stream_url,pack,position&order=position.asc',{headers:{apikey:SHANASHIL_SUPABASE_KEY,Authorization:'Bearer '+SHANASHIL_SUPABASE_KEY}});
+  if(!res.ok)throw new Error('تعذر تحميل القنوات المشتركة ('+res.status+')');
+  sharedBeinFromRows(await res.json());
+ }catch(e){failures.push(e)}
+ try{await loadWorldChannels()}catch(e){failures.push(e);console.warn('Global channel catalogue unavailable',e)}
+ sharedBeinLoaded=true;
+ if(!CH.length&&failures.length)throw failures[0];
 }
 async function publishSharedBeinChannels(rows,key){
  var res=await fetch(SHANASHIL_SUPABASE_URL+'/rest/v1/rpc/publish_shared_tv_channels',{method:'POST',headers:{apikey:SHANASHIL_SUPABASE_KEY,Authorization:'Bearer '+SHANASHIL_SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_admin_key:key,p_channels:rows})});
@@ -943,8 +1002,10 @@ function channelLogo(c){
 function fillChList(){
   var l=$('#chList');if(!l)return;
   var q=String($('#beinChannelSearch')&&$('#beinChannelSearch').value||'').trim().toLowerCase();
-  var rows=CH.filter(function(c){return (chanCat==='all'||c.cat===chanCat)&&(!q||String(c.t[L()]+' '+c.num+' '+(c.packLabel||'')).toLowerCase().indexOf(q)>-1)}).map(function(c){var isLocal=/^bein-local-/.test(c.id),a=isLocal?null:onair(c);return '<button class="chr" data-act="chan" data-id="'+escHTML(c.id)+'" aria-current="'+(c.id===curChan)+'"><span class="logo" style="--hue:'+Number(c.hue||0)+'">'+channelLogo(c)+'</span><span><b>'+escHTML(c.num)+' · '+escHTML(c.t[L()])+'</b><small>'+escHTML(isLocal?(c.packLabel||'بث مباشر'):a.cur.t[L()])+'</small></span></button>'}).join('');
-  l.innerHTML=rows||'<div class="empty" style="padding:24px 8px;font-size:1rem">لا توجد قنوات مطابقة</div>';
+  var filtered=CH.filter(function(c){var names=String((c.t||[]).join(' ')+' '+c.num+' '+(c.packLabel||'')+' '+(c.country||'')).toLowerCase();return (chanCat==='all'||c.cat===chanCat)&&(!q||names.indexOf(q)>-1)});
+  var shown=filtered.slice(0,chanLimit);
+  var rows=shown.map(function(c){var isLocal=/^bein-local-/.test(c.id)||c.world,a=isLocal?null:onair(c);return '<button class="chr" data-act="chan" data-id="'+escHTML(c.id)+'" aria-current="'+(c.id===curChan)+'"><span class="logo" style="--hue:'+Number(c.hue||0)+'">'+channelLogo(c)+'</span><span><b>'+escHTML(c.num)+' · '+escHTML(c.t[L()])+'</b><small>'+escHTML(isLocal?(c.packLabel||'بث مباشر'):a.cur.t[L()])+'</small></span></button>'}).join('');
+  l.innerHTML=(rows||'<div class="empty" style="padding:24px 8px;font-size:1rem">لا توجد قنوات مطابقة</div>')+(filtered.length>shown.length?'<button class="chip" data-act="chmore" style="width:100%;margin-top:10px">عرض المزيد · '+(filtered.length-shown.length)+'</button>':'')+'<div class="empty" style="padding:8px;font-size:.75rem">'+shown.length+' / '+filtered.length+' قناة</div>';
 }
 function setChannel(id){
   var c=CBY[id];
@@ -1333,7 +1394,7 @@ document.addEventListener('click',function(e){
   else if(a==='mood'){FILT.movies.g=el.dataset.g;location.hash='#movies'}
   else if(a==='season'){dState.season=+el.dataset.n;var it=BY[dState.id];$('#seasons').innerHTML=seasonChips(it);$('#eps').innerHTML=epsHTML(it)}
   else if(a==='chan'){closeAll(true);curChan=id;if(cur!=='live'){location.hash='#live'}else{setChannel(id);fillChList();$$('.epg-p').forEach(function(b){})}}
-  else if(a==='chcat'){chanCat=el.dataset.c;$$('#chCats .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.c===chanCat))});fillChList()}
+  else if(a==='chcat'){chanCat=el.dataset.c;chanLimit=300;$('#chCats .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.c===chanCat))});fillChList()}\n  else if(a==='chmore'){chanLimit+=300;fillChList()}
   else if(a==='search'){openSearch()}
   else if(a==='settings'){openDrawer()}
   else if(a==='lang-toggle'){setLang(S.lang==='ar'?'en':'ar')}
@@ -1440,7 +1501,7 @@ document.addEventListener('click',async function(e){
 document.addEventListener('input',function(e){
   var el=e.target;
   if(el.id==='q'){fillSearch(el.value);return}
-  if(el.id==='beinChannelSearch'){fillChList();return}
+  if(el.id==='beinChannelSearch'){chanLimit=300;fillChList();return}
   if(el.dataset&&el.dataset.set==='dark'){S.dark=+el.value;applyFX();save()}
 });
 document.addEventListener('keydown',function(e){
