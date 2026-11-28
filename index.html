@@ -1395,7 +1395,8 @@ document.addEventListener('click',function(e){
   else if(a==='mood'){FILT.movies.g=el.dataset.g;location.hash='#movies'}
   else if(a==='season'){dState.season=+el.dataset.n;var it=BY[dState.id];$('#seasons').innerHTML=seasonChips(it);$('#eps').innerHTML=epsHTML(it)}
   else if(a==='chan'){closeAll(true);curChan=id;if(cur!=='live'){location.hash='#live'}else{setChannel(id);fillChList();$$('.epg-p').forEach(function(b){})}}
-  else if(a==='chcat'){chanCat=el.dataset.c;chanLimit=300;$('#chCats .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.c===chanCat))});fillChList()}\n  else if(a==='chmore'){chanLimit+=300;fillChList()}
+  else if(a==='chcat'){chanCat=el.dataset.c;chanLimit=300;$$('#chCats .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.c===chanCat))});fillChList()}
+  else if(a==='chmore'){chanLimit+=300;fillChList()}
   else if(a==='search'){openSearch()}
   else if(a==='settings'){openDrawer()}
   else if(a==='lang-toggle'){setLang(S.lang==='ar'?'en':'ar')}
