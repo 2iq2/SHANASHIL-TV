@@ -1259,32 +1259,61 @@ document.addEventListener('change',function(e){
     var reader=new FileReader();
     reader.onload=function(){
       try{
-        var lines=String(reader.result||'').replace(/^\uFEFF/,'').split(/\r?\n/),rows=[],meta='';
+        var source=String(reader.result||'').replace(/^\\uFEFF/,'');
+        var lines=source.split(/\\r?\\n/),rows=[],meta='';
+        function attr(line,key){
+          var re=new RegExp('(?:^|\\\\s)'+key+'\\\\s*=\\\\s*(?:"([^"]*)"|\\'([^\\']*)\\'|([^\\\\s,]+))','i');
+          var m=line.match(re);return m?(m[1]||m[2]||m[3]||'').trim():'';
+        }
+        function clean(v){
+          return String(v||'').normalize('NFKC').toLowerCase()
+            .replace(/[\\u0640\\s._-]+/g,' ')
+            .replace(/[\\u0660-\\u0669]/g,function(d){return String(d.charCodeAt(0)-0x0660)})
+            .replace(/[\\u06f0-\\u06f9]/g,function(d){return String(d.charCodeAt(0)-0x06f0)})
+            .trim();
+        }
+        function isBeinSports(v){
+          var n=clean(v);
+          return /be\\s*in\\s*sports?|بي\\s*ان\\s*سبورت|بين\\s*سبورت/.test(n);
+        }
+        function isExcluded(v){
+          var n=clean(v);
+          return /\\b(be\\s*in\\s*)?(movies?|series|connect)\\b|alkass|الكاس|الكأس/.test(n);
+        }
+        function classify(name,group,metaLine){
+          var n=clean(name),g=clean(group),m=clean(metaLine);
+          if(isExcluded(name)||isExcluded(group))return '';
+          if(/4k|uhd|hdr/.test(g+' '+n) && (isBeinSports(name)||isBeinSports(group)||/\\bbein\\b/.test(m)))return '4k';
+          if(/\\b(fr|france|french)\\b/.test(g+' '+n) && (isBeinSports(name)||isBeinSports(group)))return 'fr';
+          if(/event|tod|مناسبات|فعاليات/.test(g+' '+n) && (isBeinSports(name)||isBeinSports(group)))return 'events';
+          if(isBeinSports(name)||isBeinSports(group))return 'main';
+          return '';
+        }
         for(var z=0;z<lines.length;z++){
           var line=lines[z].trim();if(!line)continue;
           if(line.indexOf('#EXTINF')===0){meta=line;continue}
-          if(line.charAt(0)==='#')continue;
-          if(!meta)continue;
-          var head=meta.split(',')[0],name=(meta.indexOf(',')>-1?meta.slice(meta.indexOf(',')+1):'').trim();
-          var gm=head.match(/group-title="([^"]*)"/i),lm=head.match(/tvg-logo="([^"]*)"/i);
-          var group=gm?gm[1]:'',kind='';
-          if(group==='beIN Sports')kind='main';
-          else if(group==='beIN Sports Events (TOD)')kind='events';
-          else if(group==='beIN Sports FR')kind='fr';
-          else if(group==='4K UHD/HDR'&&/\bbein\b/i.test(name))kind='4k';
-          if(kind&&name)rows.push({name:name,logo:lm?lm[1]:'',url:line,kind:kind});
+          if(line.charAt(0)==='#'||!meta)continue;
+          var comma=meta.indexOf(','),head=comma>-1?meta.slice(0,comma):meta;
+          var displayName=comma>-1?meta.slice(comma+1).trim():'';
+          var tvgName=attr(head,'tvg-name');
+          var name=displayName||tvgName||attr(head,'tvg-id')||'قناة beIN';
+          var group=attr(head,'group-title');
+          var kind=classify(name,group,meta);
+          if(kind && /^(https?|rtmp|rtsp|udp|srt):\\/\\//i.test(line)){
+            rows.push({name:name,logo:attr(head,'tvg-logo'),url:line,kind:kind});
+          }
           meta='';
         }
         var rank={main:0,events:1,fr:2,'4k':3},packNames={main:'القنوات الرئيسية',events:'مباريات وفعاليات TOD',fr:'beIN France','4k':'beIN 4K'};
         rows.sort(function(a,b){return rank[a.kind]-rank[b.kind]||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})});
-        if(!rows.length)throw new Error('لم أجد قنوات beIN في المجموعات المعروفة داخل الملف.');
-        CH=CH.filter(function(c){return !/^bein/i.test(c.id)});
+        if(!rows.length)throw new Error('لم أجد قنوات beIN SPORTS. تحققي من وجود أسماء beIN في اسم القناة أو tvg-name أو group-title وأن روابط البث موجودة.');
+        CH=CH.filter(function(c){return !/^bein-local-/.test(c.id)});
         rows.forEach(function(r,i){
           var id='bein-local-'+(i+1);
           CH.push({id:id,num:CH.length+1,t:[r.name,r.name],cat:'bein',hue:278,motif:'sports',pal:0,seed:19000+i,short:'BS',logo:r.logo,stream:r.url,pack:r.kind,packLabel:packNames[r.kind]});
         });
         CBY={};CH.forEach(function(c){CBY[c.id]=c});
-        curChan=CH.find(function(c){return c.cat==='bein'}).id;chanCat='bein';
+        curChan=CH.find(function(c){return c.cat==='bein'&&/^bein-local-/.test(c.id)}).id;chanCat='bein';
         beinImportStatus='تم استيراد '+rows.length+' قناة beIN. الروابط محفوظة في ذاكرة الصفحة فقط.';
         renderLive();toast('تم تحميل باقة beIN محلياً');
       }catch(err){beinImportStatus='تعذر الاستيراد: '+(err&&err.message?err.message:'ملف غير صالح');var status=document.getElementById('beinImportStatus');if(status)status.textContent=beinImportStatus}
