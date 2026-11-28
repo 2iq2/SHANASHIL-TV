@@ -1064,15 +1064,15 @@ function mountPlayer(box,o,data){
   function attachTransport(){
    if(stream.container==='mpd'){
     if(window.dashjs&&window.dashjs.MediaPlayer){
-     try{mpegtsPlayer=window.dashjs.MediaPlayer().create();mpegtsPlayer.initialize(video,stream.url,true);mpegtsPlayer.on(window.dashjs.MediaPlayer.events.ERROR,function(){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل بث DASH؛ قد يكون المصدر محمياً أو غير متاح.';if(!e.parentNode)box.appendChild(e)});return}catch(err){}
+     try{mpegtsPlayer=window.dashjs.MediaPlayer().create();mpegtsPlayer.initialize(video,stream.url,true);mpegtsPlayer.on(window.dashjs.MediaPlayer.events.ERROR,function(){tryNextStream('تعذر تشغيل مصدر DASH؛ جاري تجربة مصدر بديل…')});return}catch(err){}
     }
-    var de=document.createElement('div');de.className='pl-error';de.textContent='تعذر تحميل مشغل DASH لهذا البث.';box.appendChild(de);return;
+    tryNextStream('مشغل DASH غير متاح لهذا المصدر؛ جاري تجربة مصدر آخر…');return;
    }
    if(stream.container==='flv'){
     if(window.flvjs&&window.flvjs.isSupported()){
      try{mpegtsPlayer=window.flvjs.createPlayer({type:'flv',url:stream.url,isLive:true},{enableWorker:true,enableStashBuffer:false});mpegtsPlayer.attachMediaElement(video);mpegtsPlayer.load();var fp=mpegtsPlayer.play();if(fp&&fp.catch)fp.catch(function(){});return}catch(err){}
     }
-    var fe=document.createElement('div');fe.className='pl-error';fe.textContent='هذا البث بصيغة FLV ومشغلها غير متاح على هذا الجهاز.';box.appendChild(fe);return;
+    tryNextStream('صيغة FLV غير مدعومة على هذا الجهاز؛ جاري تجربة مصدر بديل…');return;
    }
    if(stream.container==='m3u8'){
     if(window.Hls&&window.Hls.isSupported()){
