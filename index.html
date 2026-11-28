@@ -959,9 +959,13 @@ function setChannel(id){
       if(/^\/live\//i.test(parsedStream.pathname)&&! /\.(?:m3u8|mp4|flv|ts)$/i.test(parsedStream.pathname)){
         parsedStream.pathname += '.ts';
       }
-      // The site is HTTPS: attempt the provider's secure endpoint to avoid mixed-content blocking.
-      if(parsedStream.protocol==='http:')parsedStream.protocol='https:';
-      streamUrl=parsedStream.href;
+      // Route authorized crystalott live streams through the SHANASHIL HTTPS relay.
+      if(parsedStream.hostname.toLowerCase()==='crystalott.net'){
+        streamUrl='https://shanashil-stream-relay.2i3qqi.workers.dev/proxy'+parsedStream.pathname+parsedStream.search;
+      }else{
+        if(parsedStream.protocol==='http:')parsedStream.protocol='https:';
+        streamUrl=parsedStream.href;
+      }
     }catch(e){}
     var path='';try{path=new URL(streamUrl).pathname.toLowerCase()}catch(e){}
     var container=/\.m3u8(?:$)/i.test(path)?'m3u8':(/\.mp4(?:$)/i.test(path)?'mp4':(/\.flv(?:$)/i.test(path)?'flv':'ts'));
