@@ -1278,7 +1278,7 @@ document.addEventListener('change',function(e){
         }
         function isExcluded(v){
           var n=clean(v);
-          return /\b(be\s*in\s*)?(movies?|series|connect)\b|alkass|الكاس|الكأس/.test(n);
+          return /\bbein\s*(movies?|series|connect)\b|\bbe\s*in\s*(movies?|series|connect)\b|alkass|الكاس|الكأس/.test(n);
         }
         function classify(name,group,metaLine){
           var n=clean(name),g=clean(group),m=clean(metaLine);
