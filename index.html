@@ -1026,7 +1026,7 @@ function mountPlayer(box,o,data){
      report.relay_diagnostic={status:'pending',relay_header:null,upstream_status:null,probe_error:null};
      // Safely inspect response headers with a one-byte Range request; never read or save stream data.
      fetch(stream.url,{method:'GET',mode:'cors',cache:'no-store',headers:{Range:'bytes=0-0'}}).then(function(response){
-      report.relay_diagnostic={status:response.status,relay_header:response.headers.get('X-Relay-Diagnostic'),upstream_status:response.headers.get('X-Upstream-Status'),probe_error:null};
+      report.relay_diagnostic={status:response.status,relay_header:response.headers.get('X-Relay-Diagnostic'),upstream_status:response.headers.get('X-Upstream-Status'),redirect_host:response.headers.get('X-Redirect-Host'),probe_error:null};
       try{if(response.body&&response.body.cancel)response.body.cancel()}catch(ignore){}
      }).catch(function(probeError){
       report.relay_diagnostic={status:null,relay_header:null,upstream_status:null,probe_error:String(probeError&&probeError.message||probeError).slice(0,240)};
