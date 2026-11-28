@@ -1078,11 +1078,11 @@ function mountPlayer(box,o,data){
     if(window.Hls&&window.Hls.isSupported()){
      try{var hlsPlayer=new window.Hls({enableWorker:true,lowLatencyMode:true,liveSyncDurationCount:3});mpegtsPlayer=hlsPlayer;hlsPlayer.loadSource(stream.url);hlsPlayer.attachMedia(video);hlsPlayer.on(window.Hls.Events.ERROR,function(event,data){if(data&&data.fatal)tryNextStream('تعذر تشغيل مصدر HLS ('+(data.details||'خطأ مصدر/اتصال')+')؛ جاري تجربة مصدر بديل…')});return}catch(err){}}
     if(video.canPlayType('application/vnd.apple.mpegurl')){video.src=stream.url;video.play().catch(function(){});return}
-    var he=document.createElement('div');he.className='pl-error';he.textContent='متصفحك لا يدعم HLS حالياً؛ تعذر تحميل مشغل HLS.';box.appendChild(he);return;
+    tryNextStream('مشغل HLS غير متاح على هذا المتصفح؛ جاري تجربة مصدر آخر…');return;
    }
    if(stream.container!=='ts')return;
    if(!window.mpegts||!window.mpegts.isSupported()){
-    var e=document.createElement('div');e.className='pl-error';e.textContent='مشغل MPEG-TS غير متاح في هذا المتصفح أو تعذر تحميل مكتبته.';box.appendChild(e);return;
+    tryNextStream('مشغل MPEG-TS غير متاح على هذا المتصفح؛ جاري تجربة مصدر آخر…');return;
    }
    try{
     mpegtsPlayer=window.mpegts.createPlayer({type:'mpegts',isLive:true,url:stream.url},{enableWorker:true,enableStashBuffer:false,liveBufferLatencyChasing:true,liveBufferLatencyMaxLatency:1.5,liveBufferLatencyMinRemain:0.5});
@@ -1124,7 +1124,7 @@ function mountPlayer(box,o,data){
      });
      e.insertAdjacentElement('afterend',download);
     });
-   }catch(err){var e=document.createElement('div');e.className='pl-error';e.textContent='تعذر تهيئة مشغل البث المباشر.';box.appendChild(e)}
+   }catch(err){tryNextStream('تعذر تهيئة مشغل البث؛ جاري تجربة مصدر بديل…')}
   }
   attachTransport();
   function subtitleMessage(message){
