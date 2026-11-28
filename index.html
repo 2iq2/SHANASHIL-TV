@@ -1023,6 +1023,14 @@ function mountPlayer(box,o,data){
       error:{type:String(type||''),detail:String(detail||''),http_code:info&&info.code!==undefined?info.code:null,message:String(info&&info.msg||''),stack:String(info&&info.err&&info.err.stack||'').slice(0,1200)},
       interpretation:'HTTP -1 / Failed to fetch means the browser did not expose an HTTP response. Common causes: TLS/HTTPS failure, CORS rejection, DNS/network blocking, or provider-side access restrictions. This report cannot distinguish them without server/network logs.'
      };
+     report.relay_diagnostic={status:'pending',relay_header:null,upstream_status:null,probe_error:null};
+     // Safely inspect response headers with a one-byte Range request; never read or save stream data.
+     fetch(stream.url,{method:'GET',mode:'cors',cache:'no-store',headers:{Range:'bytes=0-0'}}).then(function(response){
+      report.relay_diagnostic={status:response.status,relay_header:response.headers.get('X-Relay-Diagnostic'),upstream_status:response.headers.get('X-Upstream-Status'),probe_error:null};
+      try{if(response.body&&response.body.cancel)response.body.cancel()}catch(ignore){}
+     }).catch(function(probeError){
+      report.relay_diagnostic={status:null,relay_header:null,upstream_status:null,probe_error:String(probeError&&probeError.message||probeError).slice(0,240)};
+     });
      var download=document.createElement('button');download.type='button';download.textContent='تنزيل تقرير الخطأ';download.className='btn';download.style.cssText='display:block;margin:10px auto;padding:9px 16px;border:1px solid #d95a9a;border-radius:10px;background:#241522;color:#fff;font:inherit;cursor:pointer';
      download.addEventListener('click',function(){
       var blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
