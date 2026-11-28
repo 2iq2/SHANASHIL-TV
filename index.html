@@ -526,6 +526,8 @@ html[lang="ar"] .foot h4{font-family:var(--f-b);font-size:.84rem}
 
 <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -1033,7 +1035,7 @@ function setChannel(id){
       }
     }catch(e){}
     var path='';try{path=new URL(streamUrl).pathname.toLowerCase()}catch(e){}
-    var container=/\.m3u8(?:$)/i.test(path)?'m3u8':(/\.mp4(?:$)/i.test(path)?'mp4':(/\.flv(?:$)/i.test(path)?'flv':'ts'));
+    var container=/\.m3u8(?:$)/i.test(path)?'m3u8':(/\.mpd(?:$)/i.test(path)?'mpd':(/\.mp4(?:$)/i.test(path)?'mp4':(/\.flv(?:$)/i.test(path)?'flv':'ts')));
     liveData={streams:[{url:streamUrl,quality:'بث مباشر',container:container}]};
   }
   livePlayer=mountPlayer($('#plBox'),{ch:c,live:true,title:c.t[L()],sub:(c.packLabel||CATS[c.cat][L()])+' · '+a.cur.t[L()]},liveData);
@@ -1045,15 +1047,27 @@ function setChannel(id){
 /* ---------- player ---------- */
 function drawNoise(c){var x=c.getContext('2d'),w=c.width,h=c.height,im=x.createImageData(w,h),d=im.data;for(var i=0;i<d.length;i+=4){var v=Math.random()*255|0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255}x.putImageData(im,0,0)}
 function mountPlayer(box,o,data){
- var streams=((data&&data.streams)||[]).filter(function(x){return x&&safeMediaURL(x.url,false)&&['mp4','ts','m3u8','flv'].indexOf(String(x.container||'').toLowerCase())>-1}),subs=((data&&data.subtitles)||[]).filter(function(x){return x&&safeMediaURL(x.url,true)});
+ var streams=((data&&data.streams)||[]).filter(function(x){return x&&safeMediaURL(x.url,false)&&['mp4','ts','m3u8','flv','mpd'].indexOf(String(x.container||'').toLowerCase())>-1}),subs=((data&&data.subtitles)||[]).filter(function(x){return x&&safeMediaURL(x.url,true)});
  if(!streams.length){box.innerHTML='<div class="pl-error">ماكو روابط تشغيل متاحة حالياً لهذا العنوان. جرّب حلقة أو جودة ثانية لاحقاً.</div>';return {destroy:function(){box.innerHTML=''},pos:0,total:0}}
  var current=0,stream=streams[0],activeSubtitle=-1,subtitleTrack=null,subtitleBlobUrl=null,subtitleLoadToken=0,mpegtsPlayer=null;
   function playerHTML(){
-   return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+escHTML(safeMediaURL(o.it&&o.it.poster,true))+'">'+(stream.container==='ts'||stream.container==='m3u8'?'':'<source src="'+escHTML(safeMediaURL(stream.url,false))+'" type="'+(stream.container==='mp4'?'video/mp4':'video/'+escHTML(String(stream.container).toLowerCase()))+'">')+'</video><div class="real-player-foot"><span>'+escHTML(stream.quality)+' · '+escHTML(stream.container.toUpperCase())+'</span><select class="sel" id="cineQuality" aria-label="اختيار الجودة">'+streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+escHTML(x.quality)+' · '+escHTML(x.container.toUpperCase())+'</option>'}).join('')+'</select><select class="sel" id="cineSubtitle" aria-label="اختيار الترجمة"'+(!subs.length?' disabled':'')+'><option value="-1">الترجمة: إيقاف</option>'+subs.map(function(x,i){var label=x.language==='ar'?'العربية':(x.language==='en'?'English':(x.language||'ترجمة '+(i+1)));return '<option value="'+i+'">'+escHTML(label)+'</option>'}).join('')+'</select></div></div>';
+   return '<div class="pl real-player"><video id="cineVideo" controls playsinline autoplay preload="metadata" poster="'+escHTML(safeMediaURL(o.it&&o.it.poster,true))+'">'+(['ts','m3u8','mpd','flv'].indexOf(stream.container)>-1?'':'<source src="'+escHTML(safeMediaURL(stream.url,false))+'" type="video/mp4">')+'</video><div class="real-player-foot"><span>'+escHTML(stream.quality)+' · '+escHTML(stream.container.toUpperCase())+'</span><select class="sel" id="cineQuality" aria-label="اختيار الجودة">'+streams.map(function(x,i){return '<option value="'+i+'"'+(i===current?' selected':'')+'>'+escHTML(x.quality)+' · '+escHTML(x.container.toUpperCase())+'</option>'}).join('')+'</select><select class="sel" id="cineSubtitle" aria-label="اختيار الترجمة"'+(!subs.length?' disabled':'')+'><option value="-1">الترجمة: إيقاف</option>'+subs.map(function(x,i){var label=x.language==='ar'?'العربية':(x.language==='en'?'English':(x.language||'ترجمة '+(i+1)));return '<option value="'+i+'">'+escHTML(label)+'</option>'}).join('')+'</select></div></div>';
   }
   box.innerHTML=playerHTML();
   var video=$('#cineVideo',box),destroyed=false;
   function attachTransport(){
+   if(stream.container==='mpd'){
+    if(window.dashjs&&window.dashjs.MediaPlayer){
+     try{mpegtsPlayer=window.dashjs.MediaPlayer().create();mpegtsPlayer.initialize(video,stream.url,true);mpegtsPlayer.on(window.dashjs.MediaPlayer.events.ERROR,function(){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل بث DASH؛ قد يكون المصدر محمياً أو غير متاح.';if(!e.parentNode)box.appendChild(e)});return}catch(err){}
+    }
+    var de=document.createElement('div');de.className='pl-error';de.textContent='تعذر تحميل مشغل DASH لهذا البث.';box.appendChild(de);return;
+   }
+   if(stream.container==='flv'){
+    if(window.flvjs&&window.flvjs.isSupported()){
+     try{mpegtsPlayer=window.flvjs.createPlayer({type:'flv',url:stream.url,isLive:true},{enableWorker:true,enableStashBuffer:false});mpegtsPlayer.attachMediaElement(video);mpegtsPlayer.load();var fp=mpegtsPlayer.play();if(fp&&fp.catch)fp.catch(function(){});return}catch(err){}
+    }
+    var fe=document.createElement('div');fe.className='pl-error';fe.textContent='هذا البث بصيغة FLV ومشغلها غير متاح على هذا الجهاز.';box.appendChild(fe);return;
+   }
    if(stream.container==='m3u8'){
     if(window.Hls&&window.Hls.isSupported()){
      try{var hlsPlayer=new window.Hls({enableWorker:true,lowLatencyMode:true,liveSyncDurationCount:3});mpegtsPlayer=hlsPlayer;hlsPlayer.loadSource(stream.url);hlsPlayer.attachMedia(video);hlsPlayer.on(window.Hls.Events.ERROR,function(event,data){if(data&&data.fatal){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل HLS: '+(data.details||'خطأ في المصدر أو الاتصال');if(!e.parentNode)box.appendChild(e)}});return}catch(err){}}
@@ -1152,7 +1166,7 @@ function mountPlayer(box,o,data){
   video.addEventListener('error',function(){if(!destroyed){var msg=video.error&&video.error.code===4?'صيغة الفيديو غير مدعومة بهذا المتصفح.':'تعذر تشغيل المصدر؛ قد تكون الشبكة أو رابط البث غير متاح.';var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent=msg}});
   $('#cineSubtitle',box).onchange=function(){activeSubtitle=+this.value;loadSubtitle(activeSubtitle)};
   $('#cineQuality',box).onchange=function(){var p=video.currentTime,was=!video.paused;current=+this.value;stream=streams[current];box.innerHTML=playerHTML();video=$('#cineVideo',box);video.addEventListener('loadedmetadata',function(){applySubtitle();try{video.currentTime=p;if(was)video.play().catch(function(){})}catch(e){}});video.addEventListener('error',function(){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل الجودة المختارة.';box.appendChild(e)});};
- return {destroy:function(){destroyed=true;try{video.pause();video.removeAttribute('src');video.load()}catch(e){}if(mpegtsPlayer){try{if(mpegtsPlayer.pause)mpegtsPlayer.pause();if(mpegtsPlayer.unload)mpegtsPlayer.unload();if(mpegtsPlayer.detachMediaElement)mpegtsPlayer.detachMediaElement();if(mpegtsPlayer.destroy)mpegtsPlayer.destroy()}catch(e){}mpegtsPlayer=null}box.innerHTML=''},get pos(){return video.currentTime||0},get total(){return video.duration||0}};
+ return {destroy:function(){destroyed=true;try{video.pause();video.removeAttribute('src');video.load()}catch(e){}if(mpegtsPlayer){try{if(mpegtsPlayer.pause)mpegtsPlayer.pause();if(mpegtsPlayer.stopLoad)mpegtsPlayer.stopLoad();if(mpegtsPlayer.unload)mpegtsPlayer.unload();if(mpegtsPlayer.detachMediaElement)mpegtsPlayer.detachMediaElement();if(mpegtsPlayer.reset)mpegtsPlayer.reset();if(mpegtsPlayer.destroy)mpegtsPlayer.destroy()}catch(e){}mpegtsPlayer=null}box.innerHTML=''},get pos(){return video.currentTime||0},get total(){return video.duration||0}};
 }
 /* ---------- modals ---------- */
 var stack=[],lastFocus=null,playerCtl=null,playerId=null,dState={id:null,season:1,episodes:[]};
