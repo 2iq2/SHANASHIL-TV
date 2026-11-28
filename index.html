@@ -986,6 +986,7 @@ function renderLive(){
   var s=$('#epgS');if(s)s.scrollLeft=Math.max(0,nowMin()*PX-40);
 }
 function epgHTML(){
+  if(CH.length>120)return '<div class="empty" style="padding:18px 8px;font-size:.95rem">دليل البرامج التفصيلي غير متوفر لكل القنوات العالمية؛ اختر قناة من القائمة لمشاهدة البث.</div>';
   var localBein=CH.filter(function(c){return /^bein-local-/.test(c.id)}).length;
   if(localBein>100&&localBein>CH.length*.7)return '<div class="empty" style="padding:18px 8px;font-size:.95rem">دليل البرامج غير متوفر لهذه القائمة؛ اختر قناة من القائمة لمشاهدة البث.</div>';
   var W=1440*PX,tk='';
