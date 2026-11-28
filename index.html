@@ -1,6 +1,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SHANASHIL TV | مشاهدة المسلسلات والأفلام</title>
-<meta name="description" content="SHANASHIL TV منصة ترفيهية لمتابعة الأفلام والمسلسلات. اكتشف مسلسل ليل البنفسج الموسم الثاني وتفاصيل حلقاته.">
+<title>SHANASHIL TV | مشاهدة المسلسلات والأفلام والقنوات</title>
+<meta name="description" content="SHANASHIL TV منصة ترفيهية لمتابعة الأفلام والمسلسلات والقنوات التلفزيونية. اكتشف مسلسل ليل البنفسج الموسم الثاني وتفاصيل حلقاته.">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <link rel="canonical" href="https://shanashil.runs-at.dev/">
 <meta property="og:type" content="website">
@@ -14,7 +14,7 @@
 <meta name="twitter:description" content="تفاصيل مسلسل ليل البنفسج الموسم الثاني على SHANASHIL TV.">
 <meta name="twitter:image" content="https://iraqmdb.com/storage/work-posters/ix/3861/night-of-the-violet-s2.webp">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite","name":"SHANASHIL TV","url":"https://shanashil.runs-at.dev/","inLanguage":"ar","description":"منصة ترفيهية للأفلام والمسلسلات."}
+{"@context":"https://schema.org","@type":"WebSite","name":"SHANASHIL TV","url":"https://shanashil.runs-at.dev/","inLanguage":"ar","description":"منصة ترفيهية للأفلام والمسلسلات والقنوات التلفزيونية."}
 </script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -256,6 +256,9 @@ html[lang="ar"] .np h2{font-weight:700;font-size:1.5rem}
 .prog{height:3px;background:var(--line2);flex:1;min-width:120px;border-radius:3px;overflow:hidden}
 .prog i{display:block;height:100%;background:var(--ac)}
 .chs{display:grid;gap:12px;align-content:start;min-width:0}
+.chs .bein-import{border-radius:14px!important;background:linear-gradient(145deg,var(--s2),var(--s1))!important}
+#beinChannelSearch{width:100%;min-width:0;background:var(--s2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;outline:none}
+#beinChannelSearch:focus{border-color:var(--ac)}
 .chs .chips{max-width:100%;overflow-x:auto;flex-wrap:nowrap;padding:2px 0 6px;scrollbar-width:thin}
 .chlist{max-height:min(62vh,680px);overscroll-behavior:contain;gap:4px;padding:7px}
 .chr{grid-template-columns:40px minmax(0,1fr);gap:10px;padding:9px;border:1px solid transparent;min-width:0}
@@ -457,6 +460,7 @@ html[lang="ar"] .foot h4{font-family:var(--f-b);font-size:.84rem}
       <a href="#home" data-v="home" data-i18n="home"></a>
       <a href="#movies" data-v="movies" data-i18n="movies"></a>
       <a href="#series" data-v="series" data-i18n="series"></a>
+      <a href="#live" data-v="live" data-i18n="live"></a>
       <a href="#mylist" data-v="mylist" data-i18n="mylist"></a>
     </nav>
     <div class="acts">
@@ -471,6 +475,7 @@ html[lang="ar"] .foot h4{font-family:var(--f-b);font-size:.84rem}
   <section id="v-home" class="view"></section>
   <section id="v-movies" class="view" hidden></section>
   <section id="v-series" class="view" hidden></section>
+  <section id="v-live" class="view" hidden></section>
   <section id="v-mylist" class="view" hidden></section>
 </main>
 
@@ -485,6 +490,7 @@ html[lang="ar"] .foot h4{font-family:var(--f-b);font-size:.84rem}
     <div><h4 data-i18n="fExplore"></h4><ul>
       <li><a href="#movies" data-i18n="movies"></a></li>
       <li><a href="#series" data-i18n="series"></a></li>
+      <li><a href="#live" data-i18n="live"></a></li>
       <li><a href="#mylist" data-i18n="mylist"></a></li>
     </ul></div>
     <div><h4 data-i18n="fSupport"></h4><ul>
@@ -535,14 +541,14 @@ var L=function(){return S.lang==='ar'?0:1};
 
 /* ---------- strings ---------- */
 var D={
-home:['الرئيسية','Home'],movies:['أفلام','Films'],series:['مسلسلات','Series'],mylist:['قائمتي','My List'],
+home:['الرئيسية','Home'],movies:['أفلام','Films'],series:['مسلسلات','Series'],live:['بث مباشر','Live TV'],mylist:['قائمتي','My List'],
 search:['بحث','Search'],searchPh:['ابحث عن فيلم أو مسلسل أو ممثل','Search a film, series or actor'],settings:['الإعدادات','Settings'],language:['اللغة','Language'],
 play:['تشغيل','Play'],trailer:['الإعلان','Trailer'],addList:['أضف إلى قائمتي','Add to list'],inList:['في قائمتي','In my list'],details:['التفاصيل','Details'],
 trending:['الأول هذا الأسبوع','Number one this week'],
 rowCont:['تابع المشاهدة','Continue watching'],rowTrend:['الأعلى تقييماً','Top rated'],rowTop:['أعلى ١٠ الآن','Top 10 right now'],rowNew:['وصل حديثاً','New arrivals'],rowSeries:['مسلسلات السهرة','Series for the evening'],rowAir:['على الهواء الآن','On air now'],rowMood:['تصفح حسب المزاج','Browse by mood'],
 all:['الكل','All'],sortBy:['الترتيب','Sort'],sortNew:['الأحدث','Newest'],sortRate:['الأعلى تقييماً','Top rated'],sortAz:['أبجدي','A to Z'],
 min:['د','min'],season:['الموسم','Season'],episode:['الحلقة','Episode'],director:['إخراج','Director'],cast:['بطولة','Cast'],genre:['التصنيف','Genres'],year:['السنة','Year'],similar:['قد يعجبك أيضاً','More like this'],seasonsN:['مواسم','seasons'],titlesN:['عنوان','titles'],
-
+now:['الآن','Now'],next:['التالي','Next'],guide:['دليل البرامج','Program guide'],channels:['القنوات','Channels'],liveBadge:['مباشر','LIVE'],
 emptyList:['قائمتك فارغة. أضف عناوين بالضغط على زر +','Your list is empty. Add titles with the + button.'],emptySearch:['لا توجد نتائج. جرّب كلمة أخرى.','No results. Try another word.'],
 close:['إغلاق','Close'],quality:['الجودة','Quality'],subs:['الترجمة','Subtitles'],mute:['كتم','Mute'],fullscreen:['ملء الشاشة','Fullscreen'],playPause:['تشغيل / إيقاف','Play / Pause'],
 demoNote:['عرض تجريبي','Demo playback'],
@@ -558,13 +564,13 @@ setAutoplay:['تشغيل الحلقة التالية تلقائياً','Autoplay
 setGrain:['حبيبات الفيلم','Film grain'],setFlash:['وضع الفانوس','Lantern mode'],setSound:['صوت الأجواء الخلفي','Ambient sound'],setCalm:['وضع الهدوء (بدون حركة)','Calm mode (no motion)'],
 clearProg:['مسح متابعة المشاهدة','Clear continue watching'],clearList:['مسح قائمتي','Clear my list'],resetAll:['إعادة ضبط كل الإعدادات','Reset all settings'],clear:['مسح','Clear'],confirm:['تأكيد؟','Confirm?'],reset:['إعادة ضبط','Reset'],
 toastAdd:['أُضيف إلى قائمتك','Added to your list'],toastRem:['أُزيل من قائمتك','Removed from your list'],toastDone:['تم','Done'],toastCopied:['تم النسخ','Copied'],toastLang:['تم تغيير اللغة','Language changed'],copy:['نسخ','Copy'],
-fBlurb:['أفلام ومسلسلات في مكان واحد، بهوية مستوحاة من شناشيل البصرة. نافذتك على السينما والتلفزيون.','Films and series in one place, with an identity inspired by the shanasheel of Basra. Your window onto cinema and television.'],
+fBlurb:['أفلام ومسلسلات وقنوات مباشرة في مكان واحد، بهوية مستوحاة من شناشيل البصرة. نافذتك على السينما والتلفزيون.','Films, series and live channels in one place, with an identity inspired by the shanasheel of Basra. Your window onto cinema and television.'],
 fExplore:['استكشف','Explore'],fSupport:['المساعدة','Support'],fLegal:['قانوني','Legal'],
 lgHelp:['مركز المساعدة','Help centre'],lgContact:['تواصل معنا','Contact us'],lgAbout:['عن SHANASHIL TV','About SHANASHIL TV'],lgTerms:['شروط الاستخدام','Terms of use'],lgPrivacy:['سياسة الخصوصية','Privacy policy'],lgCopy:['حقوق النشر والملكية','Copyright and ownership'],lgCookies:['التخزين المحلي','Local storage'],
 fRights:['© 2026 SHANASHIL TV. جميع الحقوق محفوظة.','© 2026 SHANASHIL TV. All rights reserved.'],
 fOwn:['اسم SHANASHIL TV وشعاره وتصميم الواجهة والنصوص الأصلية ملك لـ SHANASHIL TV. أي عنوان أو قناة أو علامة تجارية لطرف ثالث تعود ملكيتها لأصحابها، ولا تدّعي SHANASHIL TV ملكيتها.','The SHANASHIL TV name, logo, interface design and original text are the property of SHANASHIL TV. Any third-party title, channel or trademark belongs to its respective owner, and SHANASHIL TV does not claim ownership of it.'],
 fAge:['بعض الأعمال مخصصة لمن هم فوق ١٢ أو ١٦ أو ١٨ سنة كما هو مبيّن على كل عنوان.','Some titles are intended for viewers over 12, 16 or 18, as shown on each title.'],
-fDemo:['العناوين والصور في هذه النسخة خيالية، صُنعت لعرض التصميم. لا يوجد بث حقيقي فيها.','Titles and artwork in this build are fictional, created to showcase the design.'],
+fDemo:['العناوين والقنوات والصور في هذه النسخة خيالية، صُنعت لعرض التصميم. لا يوجد بث حقيقي فيها.','Titles, channels and artwork in this build are fictional, created to showcase the design. No real streams are included.'],
 fBuild:['نسخة تجريبية','Demo build'],fMade:['من وحي شناشيل البصرة','Inspired by the shanasheel of Basra']
 };
 var t=function(k){var v=D[k];return v?v[L()]:k};
@@ -713,6 +719,19 @@ function loadMoreCinemana(type){
  }).catch(function(err){console.warn('Cinemana next page failed',err);state.loading=false;renderCatalog(type);toast(S.lang==='ar'?'تعذر تحميل الدفعة التالية':'Could not load the next batch')});
 }
 ITEMS=ITEMS.concat(CUSTOM_SERIES);var BY={};ITEMS.forEach(function(i){BY[i.id]=i});
+var CH=[];
+var CBY={};CH.forEach(function(c){CBY[c.id]=c});
+var CATS={movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Docs'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],bein:['باقة beIN','beIN Package'],music:['موسيقى','Music'],kids:['أطفال','Kids']};
+var POOL={
+movies:[['فيلم السهرة','Late Show'],['سينما الشناشيل','Shanashil Cinema'],['أفلام الخليج','Gulf Films'],['ليلة الكلاسيك','Classics Night']],
+drama:[['بيت العائلة','Family House'],['حكايات الحي','Neighbourhood Tales'],['مسلسل الليلة','Tonight\'s Series'],['دراما الأمس','Yesterday\'s Drama']],
+docs:[['حكاية الشط','Story of the Shatt'],['بيوت الخشب','Houses of Wood'],['رحلة النخيل','Palm Journey'],['مدن على الماء','Cities on Water']],
+news:[['نشرة المساء','Evening News'],['تقرير الميناء','Port Report'],['صباح البصرة','Basra Morning'],['موجز الساعة','Hourly Briefing']],
+crime:[['قضية الميناء','Port Case'],['مسرح الجريمة','Crime Scene'],['آخر شاهد','The Last Witness'],['ملف مفتوح','Open File']],
+music:[['أمسية الطرب','Evening of Tarab'],['أغاني الشط','Songs of the River'],['ساعة الكورنيش','Corniche Hour'],['أصداء','Echoes']],
+sports:[['ملخص المباريات','Match Digest'],['استوديو التحليل','Analysis Studio'],['الدوري هذا المساء','League Tonight'],['بطولات','Championships']],
+kids:[['حكايات السندباد','Sinbad Tales'],['أصدقاء النخلة','Palm Friends'],['مغامرات صغيرة','Little Quests'],['وقت القصة','Story Time']]
+};
 var EPT=[['البداية','The Beginning'],['خلف المشربية','Behind the Lattice'],['رسالة من الشط','A Letter from the River'],['ليلة الميناء','Port Night'],['بيت العائلة','The Family House'],['موسم التمر','Date Season'],['العودة','The Return'],['ضوء الفجر','Dawn Light']];
 var SUBS=[['شلونك؟ تعال ادخل.','How are you? Come in.'],['تدلل، الشاي جاهز.','Make yourself at home, the tea is ready.'],['الشط هادي الليلة.','The river is calm tonight.'],['ننتظرك عند الجسر.','We will wait for you at the bridge.'],['لا تتأخر، البيت ينتظرك.','Do not be late, the house is waiting.']];
 
@@ -776,6 +795,11 @@ function poster(it,wide){
 /* ---------- helpers ---------- */
 var title=function(it){return escHTML(it.t[L()])};
 var visible=function(it){return !(S.hideAdult&&it.age>=18)};
+var fmt=function(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+var nowMin=function(){var d=new Date();return d.getHours()*60+d.getMinutes()};
+var EPGC={};
+function epg(ch){if(EPGC[ch.id])return EPGC[ch.id];var r=rng(ch.seed*31+7),pool=POOL[ch.cat]||POOL.sports,out=[],m=0,i=Math.floor(r()*4);while(m<1440+300){var d=[45,60,90,120][Math.floor(r()*4)],p=pool[(i++)%pool.length];out.push({s:m,e:m+d,t:[p[0],p[1]]});m+=d}return EPGC[ch.id]=out}
+function onair(ch){var e=epg(ch),m=nowMin(),k=0;for(var i=0;i<e.length;i++){if(e[i].s<=m&&m<e[i].e){k=i;break}}return {cur:e[k],next:e[k+1]||e[0],idx:k,list:e}}
 var inList=function(id){return S.list.indexOf(id)>-1};
 var metaLine=function(it){return '<span>'+it.year+'</span>'+(it.type==='series'?'<span>'+it.seasons+' '+t('seasonsN')+'</span>':(it.dur?'<span>'+it.dur+' '+t('min')+'</span>':''))+'<span class="st">★ '+it.rate+'</span>'+(it.source?'':'<span class="tag">+'+it.age+'</span>')};
 var gnames=function(it){return it.genres.map(function(g){return G[g][L()]}).join(' · ')};
@@ -785,11 +809,12 @@ function toast(msg){var el=$('#toast');el.textContent=String(msg==null?'':msg);c
 function card(it,o){o=o||{};var added=inList(it.id);
   return '<article class="card"><button class="card-main" data-act="open" data-id="'+it.id+'" aria-label="'+title(it)+'"><span class="poster">'+poster(it)+'<span class="age">+'+it.age+'</span><span class="hov">'+IC.play+'</span>'+(o.p!=null?'<span class="bar"><i style="width:'+Math.round(o.p*100)+'%"></i></span>':'')+'</span><span class="cap">'+it.year+' · ★ '+it.rate+'</span></button>'
   +'<button class="add" data-act="add" data-id="'+it.id+'" aria-pressed="'+added+'" aria-label="'+(added?t('inList'):t('addList'))+'">'+(added?IC.check:IC.plus)+'</button></article>'}
+function chCard(c){var a=onair(c),pr=Math.max(0,Math.min(1,(nowMin()-a.cur.s)/(a.cur.e-a.cur.s)));return '<article class="card wide"><button class="card-main" data-act="chan" data-id="'+escHTML(c.id)+'" aria-label="'+escHTML(c.t[L()])+'"><span class="wthumb">'+poster(c,true)+'<span class="pill"><i></i>'+t('liveBadge')+'</span></span><span class="wcap"><b>'+escHTML(c.num)+' · '+escHTML(c.t[L()])+'</b><small>'+(c.packLabel?escHTML(c.packLabel)+' · ':'')+escHTML(a.cur.t[L()])+'</small><span class="wprog"><i style="width:'+Math.round(pr*100)+'%"></i></span></span></button></article>'}
 function rowHTML(h,inner,extra){return '<section class="sec"><div class="wrap"><div class="row-h"><h2 class="h2">'+h+'</h2><div class="row-nav"><button class="ibtn" data-act="rail" data-d="-1" aria-label="prev">'+IC.chev+'</button><button class="ibtn" data-act="rail" data-d="1" aria-label="next">'+IC.chev+'</button></div></div><div class="rail '+(extra||'')+'">'+inner+'</div></div></section>'}
 
 /* ---------- views ---------- */
-var VIEWS=['home','movies','series','mylist'];
-var cur='home',hi=0,hTimer=0;
+var VIEWS=['home','movies','series','live','mylist'];
+var cur='home',hi=0,hTimer=0,curChan=null,chanCat='all',livePlayer=null;
 var FILT={movies:{g:'all',s:'new'},series:{g:'all',s:'new'}};
 var HERO=['s6','m1','m9','m2','m5'];
 
@@ -855,6 +880,101 @@ function renderCatalog(type){
 function renderList(){
   var items=S.list.map(function(id){return BY[id]}).filter(function(i){return i&&visible(i)});
   $('#v-mylist').innerHTML='<div class="wrap"><div class="pg-h"><div class="eyebrow">'+items.length+' '+t('titlesN')+'</div><h1>'+t('mylist')+'</h1></div><div class="grid" style="padding-top:26px">'+(items.length?items.map(function(i){return card(i)}).join(''):'<div class="empty" style="grid-column:1/-1">'+t('emptyList')+'</div>')+'</div></div>';
+}
+
+/* ---------- live tv ---------- */
+var PX=4,beinImportStatus='تحميل القنوات المشتركة…',pendingBeinRows=[],sharedBeinLoaded=false,sharedBeinLoading=false;
+var SHANASHIL_SUPABASE_URL='https://oxljuseesglhdotolzcc.supabase.co';
+var SHANASHIL_SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94bGp1c2Vlc2dsaGRvdG9semNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUyNzc4NjUsImV4cCI6MjExMDg1Mzg2NX0.HwEEOokCdyzjHrL4xzVKs9h11mIbrKLf7TbNhWsOl3g';
+function sharedBeinFromRows(rows){
+ CH=CH.filter(function(c){return !/^bein-local-/.test(c.id)});
+ var labels={main:'القنوات الرئيسية',events:'مباريات وفعاليات TOD',fr:'beIN France','4k':'beIN 4K'};
+ (rows||[]).forEach(function(r,i){CH.push({id:'bein-local-'+(i+1),num:i+1,t:[r.name,r.name],cat:'bein',hue:278,motif:'sports',pal:0,seed:19000+i,short:'BS',logo:r.logo||'',stream:r.stream_url,pack:r.pack||'main',packLabel:labels[r.pack]||'بث مباشر'})});
+ CBY={};CH.forEach(function(c){CBY[c.id]=c});
+ if(CH.length){curChan=CH[0].id;chanCat='bein'}
+}
+async function loadSharedBeinChannels(){
+ var res=await fetch(SHANASHIL_SUPABASE_URL+'/rest/v1/shared_tv_channels?select=name,logo,stream_url,pack,position&order=position.asc',{headers:{apikey:SHANASHIL_SUPABASE_KEY,Authorization:'Bearer '+SHANASHIL_SUPABASE_KEY}});
+ if(!res.ok)throw new Error('تعذر تحميل القنوات المشتركة ('+res.status+')');
+ sharedBeinFromRows(await res.json());sharedBeinLoaded=true;
+}
+async function publishSharedBeinChannels(rows,key){
+ var res=await fetch(SHANASHIL_SUPABASE_URL+'/rest/v1/rpc/publish_shared_tv_channels',{method:'POST',headers:{apikey:SHANASHIL_SUPABASE_KEY,Authorization:'Bearer '+SHANASHIL_SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_admin_key:key,p_channels:rows})});
+ var data=await res.json().catch(function(){return {}});
+ if(!res.ok)throw new Error(data.message||data.details||'تعذر نشر القنوات ('+res.status+')');
+ return data;
+}
+function renderLive(){
+ if(!sharedBeinLoaded&&!sharedBeinLoading){
+  sharedBeinLoading=true;
+  loadSharedBeinChannels().then(function(){sharedBeinLoading=false;if(cur==='live')renderLive()}).catch(function(err){sharedBeinLoading=false;beinImportStatus='تعذر تحميل القائمة المشتركة: '+(err.message||'خطأ اتصال');var st=document.getElementById('beinImportStatus');if(st)st.textContent=beinImportStatus});
+ }
+  var el=$('#v-live');
+  var cats=['all'].concat(Object.keys(CATS).filter(function(c){return CH.some(function(x){return x.cat===c})}));
+  el.innerHTML='<div class="wrap"><div class="pg-h"><div class="eyebrow">'+CH.length+' '+t('channels')+'</div><h1>'+t('live')+'</h1></div><div class="live"><div><div id="plBox"></div><div class="np" id="np"></div></div><aside class="chs"><input id="beinChannelSearch" type="search" placeholder="ابحث عن قناة…" autocomplete="off" aria-label="بحث عن قناة"><div class="chips" id="chCats">'+cats.map(function(c){return '<button class="chip" data-act="chcat" data-c="'+c+'" aria-pressed="'+(chanCat===c)+'">'+(c==='all'?t('all'):CATS[c][L()])+'</button>'}).join('')+'</div><div class="chlist" id="chList"></div></aside></div><div class="row-h" style="padding-top:20px"><h2 class="h2">'+t('guide')+'</h2></div>'+epgHTML()+'</div>';
+  fillChList();
+  if(CH.length){
+    curChan=curChan&&CBY[curChan]?curChan:CH[0].id;
+    setChannel(curChan);
+  }else{
+    curChan=null;
+    $('#plBox').innerHTML='<div class="pl-error" style="padding:30px;text-align:center"><b style="display:block;font-size:18px;margin-bottom:8px">لا توجد قنوات حالياً</b><p style="margin:0">ستظهر القنوات هنا عند إضافتها.</p></div>';
+    $('#np').innerHTML='';
+  }
+  var s=$('#epgS');if(s)s.scrollLeft=Math.max(0,nowMin()*PX-40);
+}
+function epgHTML(){
+  var localBein=CH.filter(function(c){return /^bein-local-/.test(c.id)}).length;
+  if(localBein>100&&localBein>CH.length*.7)return '<div class="empty" style="padding:18px 8px;font-size:.95rem">دليل البرامج غير متوفر لهذه القائمة؛ اختر قناة من القائمة لمشاهدة البث.</div>';
+  var W=1440*PX,tk='';
+  for(var h=0;h<24;h++)tk+='<span style="left:'+(h*60*PX)+'px">'+fmt(h*60)+'</span>';
+  var rows=CH.map(function(c){
+    var ps=epg(c).filter(function(p){return p.s<1440}).map(function(p){var e=Math.min(p.e,1440),on=p.s<=nowMin()&&nowMin()<p.e;return '<button class="epg-p'+(on?' on':'')+'" data-act="chan" data-id="'+escHTML(c.id)+'" style="left:'+(p.s*PX)+'px;width:'+((e-p.s)*PX-4)+'px"><b>'+escHTML(p.t[L()])+'</b><small>'+fmt(p.s)+' – '+fmt(p.e)+'</small></button>'}).join('');
+    return '<div class="epg-r"><button class="epg-ch" data-act="chan" data-id="'+escHTML(c.id)+'"><span class="logo" style="--hue:'+Number(c.hue||0)+'">'+channelLogo(c)+'</span><b>'+escHTML(c.t[L()])+'</b></button><div class="epg-tl" style="width:'+W+'px">'+ps+'</div></div>'}).join('');
+  return '<div class="epg" dir="ltr"><div class="epg-s" id="epgS"><div class="epg-in" style="width:'+(150+W)+'px"><div class="epg-h"><div class="epg-corner"></div><div class="epg-times" style="width:'+W+'px">'+tk+'</div></div>'+rows+'<div class="epg-now" style="left:'+(150+nowMin()*PX)+'px"></div></div></div></div>';
+}
+function channelLogo(c){
+ var u=safeMediaURL(c.logo,true);
+ return u?'<img src="'+escHTML(u)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':escHTML(c.short||'');
+}
+function fillChList(){
+  var l=$('#chList');if(!l)return;
+  var q=String($('#beinChannelSearch')&&$('#beinChannelSearch').value||'').trim().toLowerCase();
+  var rows=CH.filter(function(c){return (chanCat==='all'||c.cat===chanCat)&&(!q||String(c.t[L()]+' '+c.num+' '+(c.packLabel||'')).toLowerCase().indexOf(q)>-1)}).map(function(c){var isLocal=/^bein-local-/.test(c.id),a=isLocal?null:onair(c);return '<button class="chr" data-act="chan" data-id="'+escHTML(c.id)+'" aria-current="'+(c.id===curChan)+'"><span class="logo" style="--hue:'+Number(c.hue||0)+'">'+channelLogo(c)+'</span><span><b>'+escHTML(c.num)+' · '+escHTML(c.t[L()])+'</b><small>'+escHTML(isLocal?(c.packLabel||'بث مباشر'):a.cur.t[L()])+'</small></span></button>'}).join('');
+  l.innerHTML=rows||'<div class="empty" style="padding:24px 8px;font-size:1rem">لا توجد قنوات مطابقة</div>';
+}
+function setChannel(id){
+  var c=CBY[id];
+  if(!c){curChan=null;if(livePlayer){livePlayer.destroy();livePlayer=null}var box=$('#plBox'),np=$('#np');if(box)box.innerHTML='<div class="pl-error" style="padding:30px;text-align:center">لا توجد قنوات حالياً. استورد ملف M3U لإضافتها.</div>';if(np)np.innerHTML='';return}
+  curChan=id;var a=onair(c),m=nowMin();
+  if(livePlayer){livePlayer.destroy();livePlayer=null}
+  var liveData=null;
+  if(c.stream){
+    var streamUrl=safeMediaURL(c.stream,false);
+    if(!streamUrl){$('#plBox').textContent='رابط القناة غير صالح.';return}
+    // Xtream live endpoints commonly require an explicit stream extension.
+    // The imported SHANASHIL /live/ links are extensionless, so request TS explicitly.
+    try{
+      var parsedStream=new URL(streamUrl);
+      if(/^\/live\//i.test(parsedStream.pathname)&&! /\.(?:m3u8|mp4|flv|ts)$/i.test(parsedStream.pathname)){
+        parsedStream.pathname += '.ts';
+      }
+      // Route authorized crystalott live streams through the SHANASHIL HTTPS relay.
+      if(parsedStream.hostname.toLowerCase()==='crystalott.net'){
+        streamUrl='https://shanashil-stream-relay.2i3qqi.workers.dev/proxy'+parsedStream.pathname+parsedStream.search;
+      }else{
+        if(parsedStream.protocol==='http:')parsedStream.protocol='https:';
+        streamUrl=parsedStream.href;
+      }
+    }catch(e){}
+    var path='';try{path=new URL(streamUrl).pathname.toLowerCase()}catch(e){}
+    var container=/\.m3u8(?:$)/i.test(path)?'m3u8':(/\.mp4(?:$)/i.test(path)?'mp4':(/\.flv(?:$)/i.test(path)?'flv':'ts'));
+    liveData={streams:[{url:streamUrl,quality:'بث مباشر',container:container}]};
+  }
+  livePlayer=mountPlayer($('#plBox'),{ch:c,live:true,title:c.t[L()],sub:(c.packLabel||CATS[c.cat][L()])+' · '+a.cur.t[L()]},liveData);
+  var pr=Math.max(0,Math.min(1,(m-a.cur.s)/(a.cur.e-a.cur.s)));
+  $('#np').innerHTML='<h2>'+escHTML(c.num)+' · '+escHTML(c.t[L()])+'</h2><div class="now"><span class="meta"><span class="st">'+t('now')+'</span><span class="mono">'+fmt(a.cur.s)+' – '+fmt(a.cur.e)+'</span></span><b>'+escHTML(a.cur.t[L()])+'</b><span class="prog"><i style="width:'+Math.round(pr*100)+'%"></i></span></div><div class="meta"><span>'+t('next')+'</span><span class="mono">'+fmt(a.next.s)+'</span><span>'+a.next.t[L()]+'</span></div>';
+  $$('.chr').forEach(function(b){b.setAttribute('aria-current',String(b.dataset.id===id))});
 }
 
 /* ---------- player ---------- */
@@ -1169,18 +1289,19 @@ function soundOn(){if(drone)return;try{AC=AC||new (window.AudioContext||window.w
 function soundOff(){if(drone){drone.stop();drone=null}}
 
 /* ---------- language / render ---------- */
-function tabsHTML(){var tb=[['home','home','home'],['movies','film','movies'],['series','tv','series'],['mylist','mark','mylist']];$('#tabs').innerHTML=tb.map(function(x){return '<a href="#'+x[0]+'" data-v="'+x[0]+'"'+(cur===x[0]?' class="on"':'')+'>'+IC[x[1]]+'<span>'+t(x[2])+'</span></a>'}).join('')}
+function tabsHTML(){var tb=[['home','home','home'],['movies','film','movies'],['series','tv','series'],['live','live','live'],['mylist','mark','mylist']];$('#tabs').innerHTML=tb.map(function(x){return '<a href="#'+x[0]+'" data-v="'+x[0]+'"'+(cur===x[0]?' class="on"':'')+'>'+IC[x[1]]+'<span>'+t(x[2])+'</span></a>'}).join('')}
 function applyI18n(){
   $$('[data-i18n]').forEach(function(e){e.textContent=t(e.dataset.i18n)});
   $$('[data-i18n-aria]').forEach(function(e){e.setAttribute('aria-label',t(e.dataset.i18nAria))});
   $('#btnSearch').innerHTML=IC.search;$('#btnSet').innerHTML=IC.gear;$('#btnLang').textContent=S.lang==='ar'?'EN':'عربي';tabsHTML();
 }
 function applyLang(){var h=document.documentElement;h.lang=S.lang;h.dir=S.lang==='ar'?'rtl':'ltr';applyI18n()}
-function render(v){if(v==='home')renderHome();else if(v==='movies'||v==='series')renderCatalog(v);else if(v==='mylist')renderList()}
+function render(v){if(v==='home')renderHome();else if(v==='movies'||v==='series')renderCatalog(v);else if(v==='live')renderLive();else if(v==='mylist')renderList()}
 function route(){
   var h=location.hash.replace('#','');if(VIEWS.indexOf(h)<0)h='home';cur=h;
   VIEWS.forEach(function(v){$('#v-'+v).hidden=v!==h});
   $$('#nav a,#tabs a').forEach(function(a){a.classList.toggle('on',a.dataset.v===h)});
+  if(h!=='live'&&livePlayer){livePlayer.destroy();livePlayer=null}
   if(h!=='home')clearInterval(hTimer);
   render(h);window.scrollTo(0,0);
 }
@@ -1208,6 +1329,8 @@ document.addEventListener('click',function(e){
   else if(a==='catalog-more'){loadMoreCinemana(el.dataset.t)}
   else if(a==='mood'){FILT.movies.g=el.dataset.g;location.hash='#movies'}
   else if(a==='season'){dState.season=+el.dataset.n;var it=BY[dState.id];$('#seasons').innerHTML=seasonChips(it);$('#eps').innerHTML=epsHTML(it)}
+  else if(a==='chan'){closeAll(true);curChan=id;if(cur!=='live'){location.hash='#live'}else{setChannel(id);fillChList();$$('.epg-p').forEach(function(b){})}}
+  else if(a==='chcat'){chanCat=el.dataset.c;$$('#chCats .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.c===chanCat))});fillChList()}
   else if(a==='search'){openSearch()}
   else if(a==='settings'){openDrawer()}
   else if(a==='lang-toggle'){setLang(S.lang==='ar'?'en':'ar')}
@@ -1224,6 +1347,69 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
   var el=e.target;
+  if(el&&el.id==='beinSharedFile'){
+    var file=el.files&&el.files[0];if(!file)return;
+    beinImportStatus='جارٍ قراءة القائمة محلياً…';
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        var source=String(reader.result||'').replace(/^\uFEFF/,'');
+        var lines=source.split(/\r?\n/),rows=[],meta='';
+        function attr(line,key){
+          var re=new RegExp('(?:^|\\s)'+key+'\\s*=\\s*(?:"([^"]*)"|([^\\s,]+))','i');
+          var m=line.match(re);return m?(m[1]||m[2]||'').trim():'';
+        }
+        function clean(v){
+          return String(v||'').normalize('NFKC').toLowerCase()
+            .replace(/[\u0640\s._-]+/g,' ')
+            .replace(/[\u0660-\u0669]/g,function(d){return String(d.charCodeAt(0)-0x0660)})
+            .replace(/[\u06f0-\u06f9]/g,function(d){return String(d.charCodeAt(0)-0x06f0)})
+            .trim();
+        }
+        function isBeinSports(v){
+          var n=clean(v);
+          return /be\s*in\s*sports?|بي\s*ان\s*سبورت|بين\s*سبورت/.test(n);
+        }
+        function isExcluded(v){
+          var n=clean(v);
+          return /\bbein\s*(movies?|series|connect)\b|\bbe\s*in\s*(movies?|series|connect)\b|alkass|الكاس|الكأس/.test(n);
+        }
+        function classify(name,group,metaLine){
+          var n=clean(name),g=clean(group),m=clean(metaLine);
+          if(isExcluded(name)||isExcluded(group))return '';
+          if(/4k|uhd|hdr/.test(g+' '+n) && (isBeinSports(name)||isBeinSports(group)||/\bbein\b/.test(m)))return '4k';
+          if(/\b(fr|france|french)\b/.test(g+' '+n) && (isBeinSports(name)||isBeinSports(group)))return 'fr';
+          if(/event|tod|مناسبات|فعاليات/.test(g+' '+n) && (isBeinSports(name)||isBeinSports(group)))return 'events';
+          if(isBeinSports(name)||isBeinSports(group))return 'main';
+          return '';
+        }
+        for(var z=0;z<lines.length;z++){
+          var line=lines[z].trim();if(!line)continue;
+          if(line.indexOf('#EXTINF')===0){meta=line;continue}
+          if(line.charAt(0)==='#'||!meta)continue;
+          var comma=meta.indexOf(','),head=comma>-1?meta.slice(0,comma):meta;
+          var displayName=comma>-1?meta.slice(comma+1).trim():'';
+          var tvgName=attr(head,'tvg-name');
+          var name=displayName||tvgName||attr(head,'tvg-id')||'قناة beIN';
+          var group=attr(head,'group-title');
+          var kind=classify(name,group,meta);
+          if(kind && /^(https?|rtmp|rtsp|udp|srt):\/\//i.test(line)){
+            rows.push({name:name,logo:attr(head,'tvg-logo'),url:line,kind:kind});
+          }
+          meta='';
+        }
+        var rank={main:0,events:1,fr:2,'4k':3},packNames={main:'القنوات الرئيسية',events:'مباريات وفعاليات TOD',fr:'beIN France','4k':'beIN 4K'};
+        var seen={};rows=rows.filter(function(r){var key=r.name.toLowerCase()+'|'+r.url;if(seen[key])return false;seen[key]=true;return true});
+        rows.sort(function(a,b){return rank[a.kind]-rank[b.kind]||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})});
+        if(!rows.length)throw new Error('لم أجد قنوات beIN SPORTS. تحققي من وجود أسماء beIN في اسم القناة أو tvg-name أو group-title وأن روابط البث موجودة.');
+        pendingBeinRows=rows;
+        beinImportStatus='تم فحص '+rows.length+' قناة beIN. أدخل مفتاح الإدارة واضغط «نشر القنوات للجميع».';
+        var status=document.getElementById('beinImportStatus');if(status)status.textContent=beinImportStatus;
+      }catch(err){beinImportStatus='تعذر الاستيراد: '+(err&&err.message?err.message:'ملف غير صالح');var status=document.getElementById('beinImportStatus');if(status)status.textContent=beinImportStatus}
+    };
+    reader.onerror=function(){beinImportStatus='تعذرت قراءة الملف.';var status=document.getElementById('beinImportStatus');if(status)status.textContent=beinImportStatus};
+    reader.readAsText(file);return;
+  }
   if(el.dataset&&el.dataset.sort){FILT[el.dataset.sort].s=el.value;renderCatalog(el.dataset.sort);return}
   if(el.dataset&&el.dataset.p==='q'){S.quality=el.value;save();return}
   if(!el.dataset||!el.dataset.set)return;
@@ -1232,9 +1418,26 @@ document.addEventListener('change',function(e){
   if(k==='sound'){if(v)soundOn();else soundOff()}
   if(k==='hideAdult')render(cur);
 });
+document.addEventListener('click',async function(e){
+  var btn=e.target.closest&&e.target.closest('#publishBeinChannels');if(!btn)return;
+  var key=document.getElementById('beinAdminKey')&&document.getElementById('beinAdminKey').value.trim();
+  var st=document.getElementById('beinImportStatus');
+  if(!pendingBeinRows.length){if(st)st.textContent='اختَر ملف M3U صالح أولاً.';return}
+  if(!key){if(st)st.textContent='أدخل مفتاح إدارة القنوات أولاً.';return}
+  btn.disabled=true;btn.textContent='جارٍ النشر…';if(st)st.textContent='جارٍ حفظ القنوات في قاعدة بيانات الموقع…';
+  try{
+    var result=await publishSharedBeinChannels(pendingBeinRows,key);
+    sharedBeinLoaded=false;await loadSharedBeinChannels();pendingBeinRows=[];
+    var fi=document.getElementById('beinSharedFile');if(fi)fi.value='';
+    if(st)st.textContent='تم نشر '+(result.count||CH.length)+' قناة. أصبحت القائمة مشتركة لكل الزوار.';
+    if(cur==='live')renderLive();toast('تم نشر قنوات beIN للجميع');
+  }catch(err){if(st)st.textContent='فشل النشر: '+(err&&err.message?err.message:'خطأ غير معروف')}
+  finally{btn.disabled=false;btn.textContent='نشر القنوات للجميع'}
+});
 document.addEventListener('input',function(e){
   var el=e.target;
   if(el.id==='q'){fillSearch(el.value);return}
+  if(el.id==='beinChannelSearch'){fillChList();return}
   if(el.dataset&&el.dataset.set==='dark'){S.dark=+el.value;applyFX();save()}
 });
 document.addEventListener('keydown',function(e){
