@@ -903,12 +903,12 @@ function worldCountryName(code,lang){
 }
 function worldArabicName(ch){
  var names=[ch.name].concat(Array.isArray(ch.alt_names)?ch.alt_names:[]);
- for(var i=0;i<names.length;i++)if(/[\\u0600-\\u06FF]/.test(String(names[i]||'')))return String(names[i]);
+ for(var i=0;i<names.length;i++)if(/[\u0600-\u06FF]/.test(String(names[i]||'')))return String(names[i]);
  var n=String(ch.name||'قناة');var special={'BBC News':'بي بي سي نيوز','BBC World News':'بي بي سي وورلد نيوز','CNN International':'سي إن إن إنترناشونال','Al Jazeera English':'الجزيرة الإنجليزية','Al Jazeera Arabic':'الجزيرة','France 24':'فرانس 24','Sky News':'سكاي نيوز','DW English':'دويتشه فيله','NHK World':'إن إتش كي وورلد','CGTN':'سي جي تي إن','Euronews':'يورونيوز','Bloomberg TV':'بلومبرغ'};
  if(special[n])return special[n];
  var dig={'sch':'ش','tch':'تش','sh':'ش','ch':'تش','th':'ث','kh':'خ','gh':'غ','ph':'ف','oo':'و','ee':'ي','ou':'او','ai':'اي','ei':'اي','ay':'اي','ck':'ك','ng':'نغ','qu':'ك'};
  var one={a:'ا',b:'ب',c:'ك',d:'د',e:'ي',f:'ف',g:'ج',h:'ه',i:'ي',j:'ج',k:'ك',l:'ل',m:'م',n:'ن',o:'و',p:'ب',q:'ك',r:'ر',s:'س',t:'ت',u:'و',v:'ڤ',w:'و',x:'كس',y:'ي',z:'ز'};
- return n.replace(/[A-Za-z]+/g,function(word){var x=word.toLowerCase().replace(/sch|tch|sh|ch|th|kh|gh|ph|oo|ee|ou|ai|ei|ay|ck|ng|qu|[a-z]/g,function(k){return dig[k]||one[k]||k});return x}).replace(/\\s+/g,' ').trim();
+ return n.replace(/[A-Za-z]+/g,function(word){var x=word.toLowerCase().replace(/sch|tch|sh|ch|th|kh|gh|ph|oo|ee|ou|ai|ei|ay|ck|ng|qu|[a-z]/g,function(k){return dig[k]||one[k]||k});return x}).replace(/\s+/g,' ').trim();
 }
 function worldCategory(categories){
  var a=(categories||[]).map(function(x){return String(x).toLowerCase()});
@@ -935,7 +935,7 @@ async function loadWorldChannels(){
  logos.forEach(function(l){if(l&&l.channel&&l.url&&(l.in_use||!logoById[l.channel]))logoById[l.channel]=l.url});
  function score(st){var u=String(st.url||'').toLowerCase(),q=String(st.quality||'').toLowerCase();return (u.indexOf('.m3u8')>-1?50:0)+(q.indexOf('1080')>-1?12:q.indexOf('720')>-1?8:0)+(st.feed?1:0)}
  var best={};
- streams.forEach(function(st){if(!st||!st.channel||!byId[st.channel]||!/^https:\\/\\//i.test(st.url||''))return;var labels=(st.labels||[]).join(' ').toLowerCase();if(/geo.?blocked|blocklisted|redirect|placeholder/.test(labels))return;if(!best[st.channel]||score(st)>score(best[st.channel]))best[st.channel]=st});
+ streams.forEach(function(st){if(!st||!st.channel||!byId[st.channel]||!/^https:\/\//i.test(st.url||''))return;var labels=(st.labels||[]).join(' ').toLowerCase();if(/geo.?blocked|blocklisted|redirect|placeholder/.test(labels))return;if(!best[st.channel]||score(st)>score(best[st.channel]))best[st.channel]=st});
  var rows=[];
  Object.keys(best).forEach(function(id){
   var c=byId[id],st=best[id],cat=worldCategory(c.categories),url=String(st.url||'');
