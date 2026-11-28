@@ -1004,9 +1004,27 @@ function mountPlayer(box,o,data){
      var parts=['تعذر تشغيل بث القناة'];
      if(type)parts.push('النوع: '+String(type));
      if(detail)parts.push('التفصيل: '+String(detail));
-     if(info&&info.code)parts.push('HTTP: '+String(info.code));
+     if(info&&info.code!==undefined)parts.push('HTTP: '+String(info.code));
      if(info&&info.msg)parts.push('الرسالة: '+String(info.msg).slice(0,180));
-     e.textContent=parts.join(' — ')+' . تحقق من دعم المصدر لاتصال HTTPS ومن سماحه بطلبات CORS من المتصفح.';
+     e.textContent=parts.join(' — ')+' . HTTP -1 يعني أن المتصفح لم يستلم استجابة من المصدر؛ قد يكون السبب HTTPS أو CORS أو حظر الاتصال.';
+     var report={
+      report_type:'SHANASHIL-TV live stream playback diagnostic',
+      generated_at:new Date().toISOString(),
+      page_url:location.href,
+      browser:navigator.userAgent,
+      online:navigator.onLine,
+      channel:{id:o.ch&&o.ch.id||null,name:o.ch&&o.ch.t?(o.ch.t.ar||o.ch.t.en||''):'',number:o.ch&&o.ch.num||null},
+      player:{library:'mpegts.js',container:stream.container,live:true,engine_supported:!!(window.mpegts&&window.mpegts.isSupported&&window.mpegts.isSupported())},
+      request:{protocol:(function(){try{return new URL(stream.url).protocol}catch(x){return 'unknown'}})(),host:(function(){try{return new URL(stream.url).host}catch(x){return 'invalid'}})(),path_redacted:(function(){try{return new URL(stream.url).pathname.replace(/(\\/live\\/).+$/i,'$1[REDACTED]')}catch(x){return '[invalid URL]'}})(),credentials_and_query:'not included for privacy'},
+      error:{type:String(type||''),detail:String(detail||''),http_code:info&&info.code!==undefined?info.code:null,message:String(info&&info.msg||''),stack:String(info&&info.err&&info.err.stack||'').slice(0,1200)},
+      interpretation:'HTTP -1 / Failed to fetch means the browser did not expose an HTTP response. Common causes: TLS/HTTPS failure, CORS rejection, DNS/network blocking, or provider-side access restrictions. This report cannot distinguish them without server/network logs.'
+     };
+     var download=document.createElement('button');download.type='button';download.textContent='تنزيل تقرير الخطأ';download.className='btn';download.style.cssText='display:block;margin:10px auto;padding:9px 16px;border:1px solid #d95a9a;border-radius:10px;background:#241522;color:#fff;font:inherit;cursor:pointer';
+     download.addEventListener('click',function(){
+      var blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download='shanashil-stream-error-'+Date.now()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1500);
+     });
+     e.insertAdjacentElement('afterend',download);
     });
    }catch(err){var e=document.createElement('div');e.className='pl-error';e.textContent='تعذر تهيئة مشغل البث المباشر.';box.appendChild(e)}
   }
