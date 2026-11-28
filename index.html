@@ -721,7 +721,7 @@ function loadMoreCinemana(type){
 ITEMS=ITEMS.concat(CUSTOM_SERIES);var BY={};ITEMS.forEach(function(i){BY[i.id]=i});
 var CH=[];
 var CBY={};CH.forEach(function(c){CBY[c.id]=c});
-var CATS={movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Docs'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],bein:['باقة beIN','beIN Package'],music:['موسيقى','Music'],kids:['أطفال','Kids']};
+var CATS={general:['عامة','General'],movies:['أفلام','Films'],drama:['دراما','Drama'],docs:['وثائقي','Docs'],crime:['جريمة','Crime'],news:['أخبار','News'],sports:['رياضة','Sports'],religious:['دينية','Religious'],bein:['باقة beIN','beIN Package'],music:['موسيقى','Music'],kids:['أطفال','Kids']};
 var POOL={
 movies:[['فيلم السهرة','Late Show'],['سينما الشناشيل','Shanashil Cinema'],['أفلام الخليج','Gulf Films'],['ليلة الكلاسيك','Classics Night']],
 drama:[['بيت العائلة','Family House'],['حكايات الحي','Neighbourhood Tales'],['مسلسل الليلة','Tonight\'s Series'],['دراما الأمس','Yesterday\'s Drama']],
@@ -730,7 +730,9 @@ news:[['نشرة المساء','Evening News'],['تقرير الميناء','Por
 crime:[['قضية الميناء','Port Case'],['مسرح الجريمة','Crime Scene'],['آخر شاهد','The Last Witness'],['ملف مفتوح','Open File']],
 music:[['أمسية الطرب','Evening of Tarab'],['أغاني الشط','Songs of the River'],['ساعة الكورنيش','Corniche Hour'],['أصداء','Echoes']],
 sports:[['ملخص المباريات','Match Digest'],['استوديو التحليل','Analysis Studio'],['الدوري هذا المساء','League Tonight'],['بطولات','Championships']],
-kids:[['حكايات السندباد','Sinbad Tales'],['أصدقاء النخلة','Palm Friends'],['مغامرات صغيرة','Little Quests'],['وقت القصة','Story Time']]
+kids:[['حكايات السندباد','Sinbad Tales'],['أصدقاء النخلة','Palm Friends'],['مغامرات صغيرة','Little Quests'],['وقت القصة','Story Time']],
+general:[['بث مباشر','Live Broadcast'],['برامج اليوم','Today’s Programs'],['منوعات','Variety'],['نافذة العالم','World Window']],
+religious:[['تلاوة القرآن','Quran Recitation'],['مجالس ومحاضرات','Talks and Lectures'],['برامج إيمانية','Faith Programs'],['تلاوات مختارة','Selected Recitations']]
 };
 var EPT=[['البداية','The Beginning'],['خلف المشربية','Behind the Lattice'],['رسالة من الشط','A Letter from the River'],['ليلة الميناء','Port Night'],['بيت العائلة','The Family House'],['موسم التمر','Date Season'],['العودة','The Return'],['ضوء الفجر','Dawn Light']];
 var SUBS=[['شلونك؟ تعال ادخل.','How are you? Come in.'],['تدلل، الشاي جاهز.','Make yourself at home, the tea is ready.'],['الشط هادي الليلة.','The river is calm tonight.'],['ننتظرك عند الجسر.','We will wait for you at the bridge.'],['لا تتأخر، البيت ينتظرك.','Do not be late, the house is waiting.']];
@@ -888,10 +890,11 @@ var SHANASHIL_SUPABASE_URL='https://oxljuseesglhdotolzcc.supabase.co';
 var SHANASHIL_SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94bGp1c2Vlc2dsaGRvdG9semNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUyNzc4NjUsImV4cCI6MjExMDg1Mzg2NX0.HwEEOokCdyzjHrL4xzVKs9h11mIbrKLf7TbNhWsOl3g';
 function sharedBeinFromRows(rows){
  CH=CH.filter(function(c){return !/^bein-local-/.test(c.id)});
- var labels={main:'القنوات الرئيسية',events:'مباريات وفعاليات TOD',fr:'beIN France','4k':'beIN 4K'};
- (rows||[]).forEach(function(r,i){CH.push({id:'bein-local-'+(i+1),num:i+1,t:[r.name,r.name],cat:'bein',hue:278,motif:'sports',pal:0,seed:19000+i,short:'BS',logo:r.logo||'',stream:r.stream_url,pack:r.pack||'main',packLabel:labels[r.pack]||'بث مباشر'})});
+ var labels={main:'قنوات beIN',events:'فعاليات beIN',fr:'beIN France','4k':'beIN 4K',general:'قنوات عامة',news:'قنوات إخبارية',sports:'قنوات رياضية',religious:'قنوات دينية',docs:'قنوات وثائقية',music:'قنوات موسيقية'};
+ var categories={main:'bein',events:'bein',fr:'bein','4k':'bein',general:'general',news:'news',sports:'sports',religious:'religious',docs:'docs',music:'music'};
+ (rows||[]).forEach(function(r,i){var cat=categories[r.pack]||'general';CH.push({id:'bein-local-'+(i+1),num:i+1,t:[r.name,r.name],cat:cat,hue:cat==='sports'?278:(cat==='news'?195:(cat==='religious'?42:160)),motif:'sports',pal:0,seed:19000+i,short:String(r.name||'TV').slice(0,2),logo:r.logo||'',stream:r.stream_url,pack:r.pack||'general',packLabel:labels[r.pack]||labels.general})});
  CBY={};CH.forEach(function(c){CBY[c.id]=c});
- if(CH.length){curChan=CH[0].id;chanCat='bein'}
+ if(CH.length){curChan=curChan&&CBY[curChan]?curChan:CH[0].id;chanCat='all'}
 }
 async function loadSharedBeinChannels(){
  var res=await fetch(SHANASHIL_SUPABASE_URL+'/rest/v1/shared_tv_channels?select=name,logo,stream_url,pack,position&order=position.asc',{headers:{apikey:SHANASHIL_SUPABASE_KEY,Authorization:'Bearer '+SHANASHIL_SUPABASE_KEY}});
