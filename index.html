@@ -935,7 +935,7 @@ async function loadWorldChannels(){
  var channels=data[0],streams=data[1],logos=data[2],byId={},logoById={},seen={};
  channels.forEach(function(c){if(c&&c.id&&!c.closed&&!c.is_nsfw)byId[c.id]=c});
  logos.forEach(function(l){if(l&&l.channel&&l.url&&(l.in_use||!logoById[l.channel]))logoById[l.channel]=l.url});
- function worldStreamContainer(url){var p='';try{p=new URL(url).pathname.toLowerCase()}catch(e){}return /\\.m3u8$/i.test(p)?'m3u8':(/\\.mpd$/i.test(p)?'mpd':(/\\.mp4$/i.test(p)?'mp4':(/\\.flv$/i.test(p)?'flv':'ts')))}
+ function worldStreamContainer(url){var p='';try{p=new URL(url).pathname.toLowerCase()}catch(e){}return /\.m3u8$/i.test(p)?'m3u8':(/\.mpd$/i.test(p)?'mpd':(/\.mp4$/i.test(p)?'mp4':(/\.flv$/i.test(p)?'flv':'ts')))}
  function score(st){var q=String(st.quality||'').toLowerCase(),ext=worldStreamContainer(st.url||'');return (ext==='m3u8'?70:ext==='mpd'?60:ext==='mp4'?45:ext==='ts'?35:10)+(q.indexOf('1080')>-1?12:q.indexOf('720')>-1?8:0)+(st.feed?1:0)}
  var candidates={};
  streams.forEach(function(st){if(!st||!st.channel||!byId[st.channel]||!/^https:\/\//i.test(st.url||''))return;var labels=(st.labels||[]).join(' ').toLowerCase();if(/geo.?blocked|blocklisted|redirect|placeholder/.test(labels))return;var arr=candidates[st.channel]||(candidates[st.channel]=[]);if(!arr.some(function(x){return x.url===st.url}))arr.push(st)});
