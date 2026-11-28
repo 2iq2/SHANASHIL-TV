@@ -991,7 +991,15 @@ function mountPlayer(box,o,data){
     mpegtsPlayer=window.mpegts.createPlayer({type:'mpegts',isLive:true,url:stream.url},{enableWorker:true,enableStashBuffer:false,liveBufferLatencyChasing:true,liveBufferLatencyMaxLatency:1.5,liveBufferLatencyMinRemain:0.5});
     mpegtsPlayer.attachMediaElement(video);mpegtsPlayer.load();
     var playResult=mpegtsPlayer.play();if(playResult&&playResult.catch)playResult.catch(function(){});
-    mpegtsPlayer.on(window.mpegts.Events.ERROR,function(){var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent='تعذر الاتصال ببث القناة. قد يكون رابط المصدر غير متاح أو يمنع المتصفح الاتصال به.'});
+    mpegtsPlayer.on(window.mpegts.Events.ERROR,function(type,detail,info){
+     var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}
+     var parts=['تعذر تشغيل بث القناة'];
+     if(type)parts.push('النوع: '+String(type));
+     if(detail)parts.push('التفصيل: '+String(detail));
+     if(info&&info.code)parts.push('HTTP: '+String(info.code));
+     if(info&&info.msg)parts.push('الرسالة: '+String(info.msg).slice(0,180));
+     e.textContent=parts.join(' — ')+' . تحقق من دعم المصدر لاتصال HTTPS ومن سماحه بطلبات CORS من المتصفح.';
+    });
    }catch(err){var e=document.createElement('div');e.className='pl-error';e.textContent='تعذر تهيئة مشغل البث المباشر.';box.appendChild(e)}
   }
   attachTransport();
