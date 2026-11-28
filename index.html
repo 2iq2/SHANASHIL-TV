@@ -970,7 +970,7 @@ function setChannel(id){
   livePlayer=mountPlayer($('#plBox'),{ch:c,live:true,title:c.t[L()],sub:(c.packLabel||CATS[c.cat][L()])+' · '+a.cur.t[L()]},liveData);
   var pr=Math.max(0,Math.min(1,(m-a.cur.s)/(a.cur.e-a.cur.s)));
   $('#np').innerHTML='<h2>'+escHTML(c.num)+' · '+escHTML(c.t[L()])+'</h2><div class="now"><span class="meta"><span class="st">'+t('now')+'</span><span class="mono">'+fmt(a.cur.s)+' – '+fmt(a.cur.e)+'</span></span><b>'+escHTML(a.cur.t[L()])+'</b><span class="prog"><i style="width:'+Math.round(pr*100)+'%"></i></span></div><div class="meta"><span>'+t('next')+'</span><span class="mono">'+fmt(a.next.s)+'</span><span>'+a.next.t[L()]+'</span></div>';
-  $('.chr').forEach(function(b){b.setAttribute('aria-current',String(b.dataset.id===id))});
+  $$('.chr').forEach(function(b){b.setAttribute('aria-current',String(b.dataset.id===id))});
 }
 
 /* ---------- player ---------- */
