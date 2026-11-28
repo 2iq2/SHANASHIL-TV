@@ -193,6 +193,11 @@ html[dir="rtl"] .row-nav button:first-child .ic{transform:none}
 .rank-it .card{z-index:1}
 .wide{--cw:clamp(250px,64vw,340px)}
 .wthumb{position:relative;display:block;aspect-ratio:16/9;border-radius:10px;overflow:hidden;border:1px solid var(--line);transition:all .3s}
+.onair-thumb{display:grid;place-items:center;background:radial-gradient(ellipse at 50% 45%,hsl(var(--hue) 58% 24% / .78),hsl(var(--hue) 45% 10% / .96) 68%),linear-gradient(135deg,#0a111a,#111b27)}
+.onair-thumb::before{content:"";position:absolute;width:190px;height:190px;border:1px solid hsl(var(--hue) 65% 65% / .16);border-radius:50%;box-shadow:0 0 45px hsl(var(--hue) 70% 50% / .13)}
+.onair-thumb .onair-logo{position:relative;z-index:1;width:76px;height:76px;border-radius:18px;background:rgba(255,255,255,.94);border:1px solid rgba(255,255,255,.28);box-shadow:0 12px 34px rgba(0,0,0,.28);padding:10px;display:grid;place-items:center;color:#15202b;font-size:1.1rem}
+.onair-thumb .onair-logo img{width:100%;height:100%;object-fit:contain;padding:0;background:transparent}
+.onair-thumb .pill{z-index:2}
 .wthumb .pill{position:absolute;z-index:2;top:10px;inset-inline-start:10px}
 .wthumb::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(0,0,0,.7))}
 .card-main:hover .wthumb{border-color:var(--line2);transform:translateY(-4px)}
@@ -813,7 +818,7 @@ function toast(msg){var el=$('#toast');el.textContent=String(msg==null?'':msg);c
 function card(it,o){o=o||{};var added=inList(it.id);
   return '<article class="card"><button class="card-main" data-act="open" data-id="'+it.id+'" aria-label="'+title(it)+'"><span class="poster">'+poster(it)+'<span class="age">+'+it.age+'</span><span class="hov">'+IC.play+'</span>'+(o.p!=null?'<span class="bar"><i style="width:'+Math.round(o.p*100)+'%"></i></span>':'')+'</span><span class="cap">'+it.year+' · ★ '+it.rate+'</span></button>'
   +'<button class="add" data-act="add" data-id="'+it.id+'" aria-pressed="'+added+'" aria-label="'+(added?t('inList'):t('addList'))+'">'+(added?IC.check:IC.plus)+'</button></article>'}
-function chCard(c){var a=onair(c),pr=Math.max(0,Math.min(1,(nowMin()-a.cur.s)/(a.cur.e-a.cur.s)));return '<article class="card wide"><button class="card-main" data-act="chan" data-id="'+escHTML(c.id)+'" aria-label="'+escHTML(c.t[L()])+'"><span class="wthumb">'+poster(c,true)+'<span class="pill"><i></i>'+t('liveBadge')+'</span></span><span class="wcap"><b>'+escHTML(c.num)+' · '+escHTML(c.t[L()])+'</b><small>'+(c.packLabel?escHTML(c.packLabel)+' · ':'')+escHTML(a.cur.t[L()])+'</small><span class="wprog"><i style="width:'+Math.round(pr*100)+'%"></i></span></span></button></article>'}
+function chCard(c){var a=onair(c),pr=Math.max(0,Math.min(1,(nowMin()-a.cur.s)/(a.cur.e-a.cur.s)));return '<article class="card wide"><button class="card-main" data-act="chan" data-id="'+escHTML(c.id)+'" aria-label="'+escHTML(c.t[L()])+'"><span class="wthumb onair-thumb" style="--hue:'+Number(c.hue||190)+'"><span class="logo onair-logo">'+channelLogo(c)+'</span><span class="pill"><i></i>'+t('liveBadge')+'</span></span><span class="wcap"><b>'+escHTML(c.num)+' · '+escHTML(c.t[L()])+'</b><small>'+(c.packLabel?escHTML(c.packLabel)+' · ':'')+escHTML(a.cur.t[L()])+'</small><span class="wprog"><i style="width:'+Math.round(pr*100)+'%"></i></span></span></button></article>'}
 function rowHTML(h,inner,extra){return '<section class="sec"><div class="wrap"><div class="row-h"><h2 class="h2">'+h+'</h2><div class="row-nav"><button class="ibtn" data-act="rail" data-d="-1" aria-label="prev">'+IC.chev+'</button><button class="ibtn" data-act="rail" data-d="1" aria-label="next">'+IC.chev+'</button></div></div><div class="rail '+(extra||'')+'">'+inner+'</div></div></section>'}
 
 /* ---------- views ---------- */
@@ -855,7 +860,7 @@ function renderHome(){
   h+=rowHTML(t('rowTop'),byRate.slice(0,10).map(function(i,n){return '<div class="rank-it"><span class="rank" aria-hidden="true">'+(n+1)+'</span>'+card(i)+'</div>'}).join(''));
   h+=rowHTML(t('rowNew'),all.slice().sort(function(a,b){return b.year-a.year||b.rate-a.rate}).slice(0,12).map(function(i){return card(i)}).join(''));
   h+='<section class="sec"><div class="wrap"><div class="heritage"><div class="her-t"><div class="eyebrow">'+t('herEye')+'</div><h2>'+t('herT')+'</h2><p>'+t('herP')+'</p></div><ul class="her-f">'+[1,2,3,4].map(function(n){return '<li><b>'+t('hf'+n+'n')+'</b><span>'+t('hf'+n+'d')+'</span></li>'}).join('')+'</ul><div class="her-src">'+t('herSrc')+'</div></div></div></section>';
-  h+=rowHTML(t('rowAir'),CH.map(chCard).join(''));
+  h+=rowHTML(t('rowAir'),CH.filter(function(c){return c.cat==='docs'}).slice(0,8).concat(CH.filter(function(c){return c.cat!=='docs'}).slice(0,6)).map(chCard).join(''));
   h+=rowHTML(t('rowSeries'),all.filter(function(i){return i.type==='series'}).map(function(i){return card(i)}).join(''));
   var moods=['drama','history','adventure','romance','thriller','comedy'],mm=['houses','dhow','palms','window','port','lantern'];
   h+='<section class="sec"><div class="wrap"><h2 class="h2">'+t('rowMood')+'</h2><div class="moods">'+moods.map(function(g,n){var cnt=ITEMS.filter(function(i){return i.genres.indexOf(g)>-1}).length,fake={motif:mm[n],pal:n,seed:400+n*7};return '<button class="mood" data-act="mood" data-g="'+g+'"><span class="art-wrap">'+poster(fake,true)+'</span><span class="l"><b>'+G[g][L()]+'</b><small>'+cnt+' '+t('titlesN')+'</small></span></button>'}).join('')+'</div></div></section>';
@@ -1539,6 +1544,8 @@ window.addEventListener('scroll',function(){$('#hd').classList.toggle('s',window
 
 /* ---------- init ---------- */
 applyFX();applyLang();route();
+sharedBeinLoading=true;
+loadSharedBeinChannels().then(function(){sharedBeinLoading=false;if(cur==='home')renderHome();else if(cur==='live')renderLive()}).catch(function(err){sharedBeinLoading=false;console.warn('Initial TV channels load failed',err);if(cur==='home')renderHome();else if(cur==='live')renderLive()});
 loadCinemanaCatalog();
 })();
 </script>
