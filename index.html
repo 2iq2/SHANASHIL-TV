@@ -952,9 +952,17 @@ function setChannel(id){
   if(c.stream){
     var streamUrl=safeMediaURL(c.stream,false);
     if(!streamUrl){$('#plBox').textContent='رابط القناة غير صالح.';return}
-    // The site is HTTPS: never request an insecure HTTP media URL from the browser.
-    // Upgrade the provider URL to HTTPS so the browser can attempt a secure connection.
-    try{var secureURL=new URL(streamUrl);if(secureURL.protocol==='http:'){secureURL.protocol='https:';streamUrl=secureURL.href}}catch(e){}
+    // Xtream live endpoints commonly require an explicit stream extension.
+    // The imported SHANASHIL /live/ links are extensionless, so request TS explicitly.
+    try{
+      var parsedStream=new URL(streamUrl);
+      if(/^\/live\//i.test(parsedStream.pathname)&&! /\.(?:m3u8|mp4|flv|ts)$/i.test(parsedStream.pathname)){
+        parsedStream.pathname += '.ts';
+      }
+      // The site is HTTPS: attempt the provider's secure endpoint to avoid mixed-content blocking.
+      if(parsedStream.protocol==='http:')parsedStream.protocol='https:';
+      streamUrl=parsedStream.href;
+    }catch(e){}
     var path='';try{path=new URL(streamUrl).pathname.toLowerCase()}catch(e){}
     var container=/\.m3u8(?:$)/i.test(path)?'m3u8':(/\.mp4(?:$)/i.test(path)?'mp4':(/\.flv(?:$)/i.test(path)?'flv':'ts'));
     liveData={streams:[{url:streamUrl,quality:'بث مباشر',container:container}]};
