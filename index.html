@@ -883,11 +883,35 @@ function renderList(){
 }
 
 /* ---------- live tv ---------- */
-var PX=4,beinImportStatus='استورد ملف M3U لتفعيل روابط البث محلياً.';
+var PX=4,beinImportStatus='تحميل القنوات المشتركة…',pendingBeinRows=[],sharedBeinLoaded=false,sharedBeinLoading=false;
+var SHANASHIL_SUPABASE_URL='https://oxljuseesglhdotolzcc.supabase.co';
+var SHANASHIL_SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94bGp1c2Vlc2dsaGRvdG9semNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUyNzc4NjUsImV4cCI6MjExMDg1Mzg2NX0.HwEEOokCdyzjHrL4xzVKs9h11mIbrKLf7TbNhWsOl3g';
+function sharedBeinFromRows(rows){
+ CH=CH.filter(function(c){return !/^bein-local-/.test(c.id)});
+ var labels={main:'القنوات الرئيسية',events:'مباريات وفعاليات TOD',fr:'beIN France','4k':'beIN 4K'};
+ (rows||[]).forEach(function(r,i){CH.push({id:'bein-local-'+(i+1),num:i+1,t:[r.name,r.name],cat:'bein',hue:278,motif:'sports',pal:0,seed:19000+i,short:'BS',logo:r.logo||'',stream:r.stream_url,pack:r.pack||'main',packLabel:labels[r.pack]||'بث مباشر'})});
+ CBY={};CH.forEach(function(c){CBY[c.id]=c});
+ if(CH.length){curChan=CH[0].id;chanCat='bein'}
+}
+async function loadSharedBeinChannels(){
+ var res=await fetch(SHANASHIL_SUPABASE_URL+'/rest/v1/shared_tv_channels?select=name,logo,stream_url,pack,position&order=position.asc',{headers:{apikey:SHANASHIL_SUPABASE_KEY,Authorization:'Bearer '+SHANASHIL_SUPABASE_KEY}});
+ if(!res.ok)throw new Error('تعذر تحميل القنوات المشتركة ('+res.status+')');
+ sharedBeinFromRows(await res.json());sharedBeinLoaded=true;
+}
+async function publishSharedBeinChannels(rows,key){
+ var res=await fetch(SHANASHIL_SUPABASE_URL+'/rest/v1/rpc/publish_shared_tv_channels',{method:'POST',headers:{apikey:SHANASHIL_SUPABASE_KEY,Authorization:'Bearer '+SHANASHIL_SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_admin_key:key,p_channels:rows})});
+ var data=await res.json().catch(function(){return {}});
+ if(!res.ok)throw new Error(data.message||data.details||'تعذر نشر القنوات ('+res.status+')');
+ return data;
+}
 function renderLive(){
+ if(!sharedBeinLoaded&&!sharedBeinLoading){
+  sharedBeinLoading=true;
+  loadSharedBeinChannels().then(function(){sharedBeinLoading=false;if(cur==='live')renderLive()}).catch(function(err){sharedBeinLoading=false;beinImportStatus='تعذر تحميل القائمة المشتركة: '+(err.message||'خطأ اتصال');var st=document.getElementById('beinImportStatus');if(st)st.textContent=beinImportStatus});
+ }
   var el=$('#v-live');
   var cats=['all'].concat(Object.keys(CATS).filter(function(c){return CH.some(function(x){return x.cat===c})}));
-  el.innerHTML='<div class="wrap"><div class="pg-h"><div class="eyebrow">'+CH.length+' '+t('channels')+'</div><h1>'+t('live')+'</h1></div><div class="live"><div><div id="plBox"></div><div class="np" id="np"></div></div><aside class="chs"><div class="bein-import" style="padding:12px;margin:0 0 12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><b>باقة beIN SPORTS</b><p style="font-size:12px;opacity:.75;margin:6px 0">اختر ملف M3U من جهازك. تُقرأ الروابط داخل هذه الجلسة فقط ولا تُرفع إلى GitHub أو Supabase.</p><input id="beinPlaylistInput" type="file" accept=".m3u,.m3u8,.txt" style="width:100%;font-size:12px"><small id="beinImportStatus" style="display:block;margin-top:6px">'+beinImportStatus+'</small></div><input id="beinChannelSearch" type="search" placeholder="ابحث عن قناة…" autocomplete="off" aria-label="بحث عن قناة"><div class="chips" id="chCats">'+cats.map(function(c){return '<button class="chip" data-act="chcat" data-c="'+c+'" aria-pressed="'+(chanCat===c)+'">'+(c==='all'?t('all'):CATS[c][L()])+'</button>'}).join('')+'</div><div class="chlist" id="chList"></div></aside></div><div class="row-h" style="padding-top:20px"><h2 class="h2">'+t('guide')+'</h2></div>'+epgHTML()+'</div>';
+  el.innerHTML='<div class="wrap"><div class="pg-h"><div class="eyebrow">'+CH.length+' '+t('channels')+'</div><h1>'+t('live')+'</h1></div><div class="live"><div><div id="plBox"></div><div class="np" id="np"></div></div><aside class="chs"><div class="bein-import" style="padding:12px;margin:0 0 12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><b>إدارة قنوات beIN المشتركة</b><p style="font-size:12px;opacity:.75;margin:6px 0">ارفع ملف M3U وانشر القنوات حتى تظهر لكل زوار الموقع. النشر يستبدل القائمة المشتركة الحالية.</p><input id="beinAdminKey" type="password" autocomplete="off" placeholder="مفتاح إدارة القنوات" style="width:100%;margin:5px 0 8px;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--s2)"><input id="beinSharedFile" type="file" accept=".m3u,.m3u8,.txt" style="width:100%;font-size:12px"><button id="publishBeinChannels" type="button" style="width:100%;margin-top:9px;padding:10px;border:0;border-radius:9px;background:var(--ac);color:#fff;font-weight:700">نشر القنوات للجميع</button><small id="beinImportStatus" style="display:block;margin-top:7px">'+beinImportStatus+'</small></div><input id="beinChannelSearch" type="search" placeholder="ابحث عن قناة…" autocomplete="off" aria-label="بحث عن قناة"><div class="chips" id="chCats">'+cats.map(function(c){return '<button class="chip" data-act="chcat" data-c="'+c+'" aria-pressed="'+(chanCat===c)+'">'+(c==='all'?t('all'):CATS[c][L()])+'</button>'}).join('')+'</div><div class="chlist" id="chList"></div></aside></div><div class="row-h" style="padding-top:20px"><h2 class="h2">'+t('guide')+'</h2></div>'+epgHTML()+'</div>';
   fillChList();
   if(CH.length){
     curChan=curChan&&CBY[curChan]?curChan:CH[0].id;
@@ -1274,7 +1298,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
   var el=e.target;
-  if(el&&el.id==='beinPlaylistInput'){
+  if(el&&el.id==='beinSharedFile'){
     var file=el.files&&el.files[0];if(!file)return;
     beinImportStatus='جارٍ قراءة القائمة محلياً…';
     var reader=new FileReader();
@@ -1329,15 +1353,9 @@ document.addEventListener('change',function(e){
         var seen={};rows=rows.filter(function(r){var key=r.name.toLowerCase()+'|'+r.url;if(seen[key])return false;seen[key]=true;return true});
         rows.sort(function(a,b){return rank[a.kind]-rank[b.kind]||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})});
         if(!rows.length)throw new Error('لم أجد قنوات beIN SPORTS. تحققي من وجود أسماء beIN في اسم القناة أو tvg-name أو group-title وأن روابط البث موجودة.');
-        CH=CH.filter(function(c){return !/^bein-local-/.test(c.id)});
-        rows.forEach(function(r,i){
-          var id='bein-local-'+(i+1);
-          CH.push({id:id,num:CH.length+1,t:[r.name,r.name],cat:'bein',hue:278,motif:'sports',pal:0,seed:19000+i,short:'BS',logo:r.logo,stream:r.url,pack:r.kind,packLabel:packNames[r.kind]});
-        });
-        CBY={};CH.forEach(function(c){CBY[c.id]=c});
-        curChan=CH.find(function(c){return c.cat==='bein'&&/^bein-local-/.test(c.id)}).id;chanCat='bein';
-        beinImportStatus='تم استيراد '+rows.length+' قناة beIN. الروابط محفوظة في ذاكرة الصفحة فقط.';
-        renderLive();toast('تم تحميل باقة beIN محلياً');
+        pendingBeinRows=rows;
+        beinImportStatus='تم فحص '+rows.length+' قناة beIN. أدخل مفتاح الإدارة واضغط «نشر القنوات للجميع».';
+        var status=document.getElementById('beinImportStatus');if(status)status.textContent=beinImportStatus;
       }catch(err){beinImportStatus='تعذر الاستيراد: '+(err&&err.message?err.message:'ملف غير صالح');var status=document.getElementById('beinImportStatus');if(status)status.textContent=beinImportStatus}
     };
     reader.onerror=function(){beinImportStatus='تعذرت قراءة الملف.';var status=document.getElementById('beinImportStatus');if(status)status.textContent=beinImportStatus};
@@ -1350,6 +1368,22 @@ document.addEventListener('change',function(e){
   S[k]=v;save();applyFX();
   if(k==='sound'){if(v)soundOn();else soundOff()}
   if(k==='hideAdult')render(cur);
+});
+document.addEventListener('click',async function(e){
+  var btn=e.target.closest&&e.target.closest('#publishBeinChannels');if(!btn)return;
+  var key=document.getElementById('beinAdminKey')&&document.getElementById('beinAdminKey').value.trim();
+  var st=document.getElementById('beinImportStatus');
+  if(!pendingBeinRows.length){if(st)st.textContent='اختَر ملف M3U صالح أولاً.';return}
+  if(!key){if(st)st.textContent='أدخل مفتاح إدارة القنوات أولاً.';return}
+  btn.disabled=true;btn.textContent='جارٍ النشر…';if(st)st.textContent='جارٍ حفظ القنوات في قاعدة بيانات الموقع…';
+  try{
+    var result=await publishSharedBeinChannels(pendingBeinRows,key);
+    sharedBeinLoaded=false;await loadSharedBeinChannels();pendingBeinRows=[];
+    var fi=document.getElementById('beinSharedFile');if(fi)fi.value='';
+    if(st)st.textContent='تم نشر '+(result.count||CH.length)+' قناة. أصبحت القائمة مشتركة لكل الزوار.';
+    if(cur==='live')renderLive();toast('تم نشر قنوات beIN للجميع');
+  }catch(err){if(st)st.textContent='فشل النشر: '+(err&&err.message?err.message:'خطأ غير معروف')}
+  finally{btn.disabled=false;btn.textContent='نشر القنوات للجميع'}
 });
 document.addEventListener('input',function(e){
   var el=e.target;
