@@ -935,15 +935,17 @@ async function loadWorldChannels(){
  var channels=data[0],streams=data[1],logos=data[2],byId={},logoById={},seen={};
  channels.forEach(function(c){if(c&&c.id&&!c.closed&&!c.is_nsfw)byId[c.id]=c});
  logos.forEach(function(l){if(l&&l.channel&&l.url&&(l.in_use||!logoById[l.channel]))logoById[l.channel]=l.url});
- function score(st){var u=String(st.url||'').toLowerCase(),q=String(st.quality||'').toLowerCase();return (u.indexOf('.m3u8')>-1?50:0)+(q.indexOf('1080')>-1?12:q.indexOf('720')>-1?8:0)+(st.feed?1:0)}
- var best={};
- streams.forEach(function(st){if(!st||!st.channel||!byId[st.channel]||!/^https:\/\//i.test(st.url||''))return;var labels=(st.labels||[]).join(' ').toLowerCase();if(/geo.?blocked|blocklisted|redirect|placeholder/.test(labels))return;if(!best[st.channel]||score(st)>score(best[st.channel]))best[st.channel]=st});
+ function worldStreamContainer(url){var p='';try{p=new URL(url).pathname.toLowerCase()}catch(e){}return /\\.m3u8$/i.test(p)?'m3u8':(/\\.mpd$/i.test(p)?'mpd':(/\\.mp4$/i.test(p)?'mp4':(/\\.flv$/i.test(p)?'flv':'ts')))}
+ function score(st){var q=String(st.quality||'').toLowerCase(),ext=worldStreamContainer(st.url||'');return (ext==='m3u8'?70:ext==='mpd'?60:ext==='mp4'?45:ext==='ts'?35:10)+(q.indexOf('1080')>-1?12:q.indexOf('720')>-1?8:0)+(st.feed?1:0)}
+ var candidates={};
+ streams.forEach(function(st){if(!st||!st.channel||!byId[st.channel]||!/^https:\/\//i.test(st.url||''))return;var labels=(st.labels||[]).join(' ').toLowerCase();if(/geo.?blocked|blocklisted|redirect|placeholder/.test(labels))return;var arr=candidates[st.channel]||(candidates[st.channel]=[]);if(!arr.some(function(x){return x.url===st.url}))arr.push(st)});
  var rows=[];
- Object.keys(best).forEach(function(id){
-  var c=byId[id],st=best[id],cat=worldCategory(c.categories),url=String(st.url||'');
+ Object.keys(candidates).forEach(function(id){
+  var list=candidates[id].sort(function(a,b){return score(b)-score(a)}).slice(0,5),st=list[0],c=byId[id],cat=worldCategory(c.categories),url=String(st.url||'');
   if(!url||seen[url])return;seen[url]=1;
   var country=String(c.country||'').toUpperCase(),ar=worldArabicName(c),en=String(c.name||id),logo=logoById[id]||'';
-  rows.push({id:'world-'+id.replace(/[^A-Za-z0-9_-]/g,'-'),num:rows.length+1,t:[ar,en],cat:cat,hue:cat==='sports'?278:(cat==='news'?195:(cat==='religious'?42:160)),motif:'sports',pal:0,seed:27000+rows.length,short:ar.slice(0,2),logo:logo,stream:url,pack:cat,packLabel:worldCountryName(country,0)+' · '+(CATS[cat][0]),country:country,countryName:worldCountryName(country,0),world:true});
+  var streamCandidates=list.map(function(x,i){return {url:String(x.url),quality:String(x.quality||('مصدر '+(i+1))),container:worldStreamContainer(x.url)}});
+  rows.push({id:'world-'+id.replace(/[^A-Za-z0-9_-]/g,'-'),num:rows.length+1,t:[ar,en],cat:cat,hue:cat==='sports'?278:(cat==='news'?195:(cat==='religious'?42:160)),motif:'sports',pal:0,seed:27000+rows.length,short:ar.slice(0,2),logo:logo,stream:url,streamCandidates:streamCandidates,pack:cat,packLabel:worldCountryName(country,0)+' · '+(CATS[cat][0]),country:country,countryName:worldCountryName(country,0),world:true});
  });
  rows.sort(function(a,b){return (a.country||'').localeCompare(b.country||'')||a.cat.localeCompare(b.cat)||a.t[1].localeCompare(b.t[1])});
  rows.forEach(function(c,i){c.num=CH.length+i+1});
@@ -1036,7 +1038,7 @@ function setChannel(id){
     }catch(e){}
     var path='';try{path=new URL(streamUrl).pathname.toLowerCase()}catch(e){}
     var container=/\.m3u8(?:$)/i.test(path)?'m3u8':(/\.mpd(?:$)/i.test(path)?'mpd':(/\.mp4(?:$)/i.test(path)?'mp4':(/\.flv(?:$)/i.test(path)?'flv':'ts')));
-    liveData={streams:[{url:streamUrl,quality:'بث مباشر',container:container}]};
+    liveData={streams:(Array.isArray(c.streamCandidates)&&c.streamCandidates.length?c.streamCandidates:[{url:streamUrl,quality:'بث مباشر',container:container}]).map(function(x){return {url:x.url,quality:x.quality||'مصدر بديل',container:x.container||container}})};
   }
   livePlayer=mountPlayer($('#plBox'),{ch:c,live:true,title:c.t[L()],sub:(c.packLabel||CATS[c.cat][L()])+' · '+a.cur.t[L()]},liveData);
   var pr=Math.max(0,Math.min(1,(m-a.cur.s)/(a.cur.e-a.cur.s)));
@@ -1055,6 +1057,10 @@ function mountPlayer(box,o,data){
   }
   box.innerHTML=playerHTML();
   var video=$('#cineVideo',box),destroyed=false;
+  function destroyTransport(){if(mpegtsPlayer){try{if(mpegtsPlayer.pause)mpegtsPlayer.pause();if(mpegtsPlayer.stopLoad)mpegtsPlayer.stopLoad();if(mpegtsPlayer.unload)mpegtsPlayer.unload();if(mpegtsPlayer.detachMediaElement)mpegtsPlayer.detachMediaElement();if(mpegtsPlayer.reset)mpegtsPlayer.reset();if(mpegtsPlayer.destroy)mpegtsPlayer.destroy()}catch(e){}mpegtsPlayer=null}}
+  function showPlayerError(message){var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent=message}
+  function tryNextStream(message){if(destroyed)return;if(current>=streams.length-1){showPlayerError(message||'تعذر تشغيل جميع مصادر هذه القناة؛ قد تكون الروابط متوقفة أو محجوبة من مزود البث.');return}destroyTransport();current++;stream=streams[current];box.innerHTML=playerHTML();video=$('#cineVideo',box);video.addEventListener('error',function(){if(!destroyed)tryNextStream('تعذر تشغيل المصدر البديل؛ جاري تجربة المصدر التالي…')});var q=$('#cineQuality',box),sub=$('#cineSubtitle',box);if(q)q.onchange=function(){switchToStream(+this.value)};if(sub)sub.onchange=function(){activeSubtitle=+this.value;loadSubtitle(activeSubtitle)};attachTransport();if(activeSubtitle>=0)loadSubtitle(activeSubtitle)}
+  function switchToStream(index){if(!Number.isInteger(index)||index<0||index>=streams.length||index===current)return;destroyTransport();current=index;stream=streams[current];box.innerHTML=playerHTML();video=$('#cineVideo',box);video.addEventListener('error',function(){if(!destroyed)tryNextStream('تعذر تشغيل المصدر المختار؛ جاري تجربة مصدر آخر…')});var q=$('#cineQuality',box),sub=$('#cineSubtitle',box);if(q)q.onchange=function(){switchToStream(+this.value)};if(sub)sub.onchange=function(){activeSubtitle=+this.value;loadSubtitle(activeSubtitle)};attachTransport();if(activeSubtitle>=0)loadSubtitle(activeSubtitle)}
   function attachTransport(){
    if(stream.container==='mpd'){
     if(window.dashjs&&window.dashjs.MediaPlayer){
@@ -1070,7 +1076,7 @@ function mountPlayer(box,o,data){
    }
    if(stream.container==='m3u8'){
     if(window.Hls&&window.Hls.isSupported()){
-     try{var hlsPlayer=new window.Hls({enableWorker:true,lowLatencyMode:true,liveSyncDurationCount:3});mpegtsPlayer=hlsPlayer;hlsPlayer.loadSource(stream.url);hlsPlayer.attachMedia(video);hlsPlayer.on(window.Hls.Events.ERROR,function(event,data){if(data&&data.fatal){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل HLS: '+(data.details||'خطأ في المصدر أو الاتصال');if(!e.parentNode)box.appendChild(e)}});return}catch(err){}}
+     try{var hlsPlayer=new window.Hls({enableWorker:true,lowLatencyMode:true,liveSyncDurationCount:3});mpegtsPlayer=hlsPlayer;hlsPlayer.loadSource(stream.url);hlsPlayer.attachMedia(video);hlsPlayer.on(window.Hls.Events.ERROR,function(event,data){if(data&&data.fatal)tryNextStream('تعذر تشغيل مصدر HLS ('+(data.details||'خطأ مصدر/اتصال')+')؛ جاري تجربة مصدر بديل…')});return}catch(err){}}
     if(video.canPlayType('application/vnd.apple.mpegurl')){video.src=stream.url;video.play().catch(function(){});return}
     var he=document.createElement('div');he.className='pl-error';he.textContent='متصفحك لا يدعم HLS حالياً؛ تعذر تحميل مشغل HLS.';box.appendChild(he);return;
    }
@@ -1089,6 +1095,7 @@ function mountPlayer(box,o,data){
      if(detail)parts.push('التفصيل: '+String(detail));
      if(info&&info.code!==undefined)parts.push('HTTP: '+String(info.code));
      if(info&&info.msg)parts.push('الرسالة: '+String(info.msg).slice(0,180));
+     if(current<streams.length-1){tryNextStream('تعذر تشغيل مصدر MPEG-TS ('+(detail||type||'خطأ اتصال')+')؛ جاري تجربة مصدر بديل…');return}
      e.textContent=parts.join(' — ')+' . HTTP -1 يعني أن المتصفح لم يستلم استجابة من المصدر؛ قد يكون السبب HTTPS أو CORS أو حظر الاتصال.';
      var report={
       report_type:'SHANASHIL-TV live stream playback diagnostic',
@@ -1163,9 +1170,9 @@ function mountPlayer(box,o,data){
     video.appendChild(subtitleTrack);try{subtitleTrack.track.mode='showing'}catch(e){}
    }).catch(function(err){if(token===subtitleLoadToken)subtitleMessage('تعذر جلب ترجمة سينمانا من هذا الاتصال: '+(err&&err.message||'خطأ غير معروف'))});
   }
-  video.addEventListener('error',function(){if(!destroyed){var msg=video.error&&video.error.code===4?'صيغة الفيديو غير مدعومة بهذا المتصفح.':'تعذر تشغيل المصدر؛ قد تكون الشبكة أو رابط البث غير متاح.';var e=$('.pl-error',box);if(!e){e=document.createElement('div');e.className='pl-error';box.appendChild(e)}e.textContent=msg}});
+  video.addEventListener('error',function(){if(!destroyed)tryNextStream(video.error&&video.error.code===4?'صيغة المصدر غير مدعومة؛ جاري تجربة مصدر بديل…':'تعذر تشغيل المصدر؛ جاري تجربة مصدر بديل…')});
   $('#cineSubtitle',box).onchange=function(){activeSubtitle=+this.value;loadSubtitle(activeSubtitle)};
-  $('#cineQuality',box).onchange=function(){var p=video.currentTime,was=!video.paused;current=+this.value;stream=streams[current];box.innerHTML=playerHTML();video=$('#cineVideo',box);video.addEventListener('loadedmetadata',function(){applySubtitle();try{video.currentTime=p;if(was)video.play().catch(function(){})}catch(e){}});video.addEventListener('error',function(){var e=$('.pl-error',box)||document.createElement('div');e.className='pl-error';e.textContent='تعذر تشغيل الجودة المختارة.';box.appendChild(e)});attachTransport();};
+  $('#cineQuality',box).onchange=function(){switchToStream(+this.value)};
  return {destroy:function(){destroyed=true;try{video.pause();video.removeAttribute('src');video.load()}catch(e){}if(mpegtsPlayer){try{if(mpegtsPlayer.pause)mpegtsPlayer.pause();if(mpegtsPlayer.stopLoad)mpegtsPlayer.stopLoad();if(mpegtsPlayer.unload)mpegtsPlayer.unload();if(mpegtsPlayer.detachMediaElement)mpegtsPlayer.detachMediaElement();if(mpegtsPlayer.reset)mpegtsPlayer.reset();if(mpegtsPlayer.destroy)mpegtsPlayer.destroy()}catch(e){}mpegtsPlayer=null}box.innerHTML=''},get pos(){return video.currentTime||0},get total(){return video.duration||0}};
 }
 /* ---------- modals ---------- */
